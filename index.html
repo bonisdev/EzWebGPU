@@ -1,0 +1,289 @@
+<html>
+
+<head>
+	<style>
+		@keyframes pulse {
+			0% {
+				box-shadow: 0px 0px 0px 1px rgba(165, 165, 165, 0.04),
+							-9px 9px 9px -0.5px rgba(0, 0, 0, 0.04),
+							-18px 18px 18px -1.5px rgba(0, 0, 0, 0.08),
+							-37px 37px 37px -3px rgba(0, 0, 0, 0.16),
+							-75px 75px 75px -6px rgba(0, 0, 0, 0.24),
+							-150px 150px 150px -12px rgba(0, 0, 0, 0.48);
+			}
+			50% {
+				box-shadow: 0px 0px 0px 1px rgba(165, 165, 165, 0.05),
+							-9px 9px 9px -0.5px rgba(0, 0, 0, 0.05),
+							-18px 18px 18px -1.5px rgba(0, 0, 0, 0.10),
+							-37px 37px 37px -3px rgba(0, 0, 0, 0.18),
+							-75px 75px 75px -6px rgba(0, 0, 0, 0.26),
+							-150px 150px 150px -12px rgba(0, 0, 0, 0.50);
+			}
+			100% {
+				box-shadow: 0px 0px 0px 1px rgba(165, 165, 165, 0.04),
+							-9px 9px 9px -0.5px rgba(0, 0, 0, 0.04),
+							-18px 18px 18px -1.5px rgba(0, 0, 0, 0.08),
+							-37px 37px 37px -3px rgba(0, 0, 0, 0.16),
+							-75px 75px 75px -6px rgba(0, 0, 0, 0.24),
+							-150px 150px 150px -12px rgba(0, 0, 0, 0.48);
+			}
+		}
+
+		html{ 
+			background: rgb(48, 49, 56);
+			/*background: linear-gradient(215deg, rgba(68,73,106,1) 0%, rgba(53,140,121,1) 34%, rgba(49,68,71,1) 100%); */
+            padding: 15px;
+		}
+		body {
+            font-family: 'Consolas', monospace;
+			height: 100%;
+			margin: 0;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+		}
+        
+        /*Rounded elment*/ 
+		.rounded-element {
+			/*width: calc(60vw); 
+			border-radius: 15px;  
+			background: linear-gradient(195deg, #715555, #536176);  
+			padding: 20px;  
+			color: #ffffff; 
+			animation: pulse 3s infinite; */
+
+            position: absolute;
+            top: 15px;
+			color: #ffffff; 
+            max-width: 600px; 
+            border-radius: 15px;
+            padding: 15px;
+			background: linear-gradient(195deg, #534242, #536176);  
+            border-radius: 15px; 
+
+		}
+
+        /*Drop down*/
+        .dropdown select {
+            width: 200px;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+            appearance: none;
+            font-family: 'Consolas', monospace; 
+            background-color: #fff;
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwIj48cGF0aCBkPSJNNSAxMmw3IDcgNy03Ii8+PC9zdmc+');
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+        }
+        
+        .dropdown select:focus {
+            border-color: #007BFF;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+            outline: none;
+        }
+
+
+        h1{
+            font-size: 48px;
+        }
+
+        a{
+            color: #8febff;
+        }
+
+        .info-section{
+            width: 100%;
+			border-radius: 15px; /* Adjust the value to control the roundness */
+            border: 1px rgb(38, 176, 98) solid;
+        }
+        .todo-section{
+            width: 100%;
+			border-radius: 15px; /* Adjust the value to control the roundness */
+            border: 1px rgb(198, 190, 36) solid;
+        }
+
+        /* Cod eeditor*/
+        .code-editor-container {
+            width: 600px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background-color: #007BFF;
+            color: white;
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+        }
+        
+        .editor-header button {
+            background-color: white;
+            color: #007BFF;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        
+        .editor-header button:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .editor {
+            display: flex;
+            font-family: 'Consolas', monospace;
+            height: 300px;
+        }
+        
+        .line-numbers {
+            padding: 10px;
+            background-color: #f7f7f7;
+            border-right: 1px solid #ccc;
+            user-select: none;
+            color: #999;
+            text-align: right;
+        }
+        
+        .line-numbers div {
+            line-height: 20px;
+        }
+        
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            resize: none;
+            outline: none;
+            font-family: 'Consolas', monospace;
+            line-height: 20px;
+            overflow: auto;
+        }
+
+	</style>
+</head>
+
+
+<body>
+	
+	<div class="rounded-element"> 
+        <div href="https://github.com/bonisdev">
+            <!--I think this racing stripe looks pretty sharp-->
+            <h1><span style="color: aqua;padding-left: 2px;border-left: 4px solid rgb(234, 31, 31);">EZ</span><span style="color: #005A9C;border-bottom: 4px solid rgb(31, 200, 28);">Web</span><span style="color: #0093FF;border-top: 4px solid rgb(236, 218, 21);">GPU</span><span style="color: aliceblue;border-right: 4px solid rgb(244, 117, 14);padding-right: 2px;">.js</span></h1>
+        
+        </div> 
+
+        <div style="max-width: 70%;">
+            <p>EzWebGPU is a wrapper for <a href="https://www.w3.org/TR/webgpu/">WebGPU</a> which handles setting up a read and write buffer pair to quickly write, deploy, and visually debug compute shaders very painlessly.  You can quickly setup cellular automata simulations and get <span style="color: rgb(241, 92, 179);font-style: bold;">BILLIONS</span> of FLOPS all in the browser.  See on: <a href="https://github.com/bonisdev">GitHub</a></p>
+        </div>
+        <h2 style="color: rgb(38, 176, 98);">DONE:</h2>
+        <div class="info-section">
+            <ul>
+                <li> Run massively parallel computations</li>
+                <li> Handles setup for a read/write buffer pair, with user input, and  </li>
+                <li> Has a list of <a href="https://github.com/bonisdev">helpful constants</a> to for use in the WGSL shaders </li>
+                <li> Get buffers from GPU back to CPU at any time steps </li>
+                <li> Read back values to the CPU at any frequency</li>
+            </ul>
+        </div>
+        
+        <h2 style="color: rgb(198, 190, 36);">TODO:</h2>
+        <div class="todo-section">
+            <ul>
+                <li> Add U32 buffer types (currently only F32)</li>
+                <li> Ability to edit the shader compute pipeline</li>
+                <li> UI grid editor  </li>
+                <li> Add more examples (send here: <a href="https://twitter.com/BonisDev">@BonisDev</a>)</li>
+            </ul>
+        </div>
+
+		<p>Examples (<a href="https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API#browser_compatibility">Must have chrome</a>):</p>
+        <div class="dropdown">
+            <select id="dropdown" onchange="handleSelectChange(this.value)">
+                <option value="0">Conways Game of Life</option>
+                <option value="1">Quadrant CGOL</option>
+                <option value="2">Gradual </option>
+            </select>
+        </div>
+
+        <!--Code-->
+        <div class="code-editor-container">
+            <div class="editor-header">
+                <span>Code Editor</span>
+                <button id="copyButton">Copy to clipboard</button>
+            </div>
+            <div class="editor">
+                <div class="line-numbers" id="lineNumbers"></div>
+                <textarea id="codeEditor" spellcheck="false"></textarea>
+            </div>
+
+        <p style="color: rgb(172, 31, 129);">How it works:</p>
+        <div class="info-section">
+            <ul>
+                <li>  Some kind of diagram</li> 
+            </ul>
+        </div>
+    
+        
+	</div>
+	
+    <script>
+        var EZ_EXAMPLE = null
+        function handleSelectChange(value) {
+            loadExample( Number(value) )
+        }
+        
+        function yourFunction(value) {
+            // Replace this with your actual function logic
+            alert('You selected: ' + value);
+        }
+
+        function loadExample( exampleInd ){
+            if( EZ_EXAMPLE ){
+                EZ_EXAMPLE.killdeath()
+            }
+        }
+        function clearExample(){
+
+        }
+
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const codeEditor = document.getElementById("codeEditor");
+            const lineNumbers = document.getElementById("lineNumbers");
+            const copyButton = document.getElementById("copyButton");
+        
+            codeEditor.addEventListener("input", updateLineNumbers);
+            codeEditor.addEventListener("scroll", () => {
+                lineNumbers.scrollTop = codeEditor.scrollTop;
+            });
+        
+            copyButton.addEventListener("click", copyToClipboard);
+        
+            function updateLineNumbers() {
+                const lines = codeEditor.value.split('\n').length;
+                lineNumbers.innerHTML = Array(lines).fill(0).map((_, i) => `<div>${i + 1}</div>`).join('');
+            }
+        
+            function copyToClipboard() {
+                codeEditor.select();
+                document.execCommand("copy");
+                alert("Code copied to clipboard!");
+            }
+        
+            // Initialize line numbers
+            updateLineNumbers();
+        });
+        
+
+    </script>
+</body>
+
+</html>
