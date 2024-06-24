@@ -145,7 +145,7 @@ function toByteArray(hexString) {
 	return result;
 }
 
-var HASHER = CHelper__B.hasher_256;
+//var HASHER = CHelper__B.hasher_256;
 
 function CustomRandom_sha(newHash, preduns, pregenes){
 	this.hash = "@legatuscoin"+newHash;

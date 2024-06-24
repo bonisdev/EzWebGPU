@@ -91,7 +91,7 @@
 
         /*Drop down*/
         .dropdown select {
-            width: 200px;
+            width: 260px;
             padding: 10px;
             border-radius: 5px;
             border: 1px solid #ccc;
@@ -108,6 +108,10 @@
             border-color: #007BFF;
             box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
             outline: none;
+        }
+
+        #demoCanvasContainer{
+            text-align: center;
         }
 
 
@@ -217,7 +221,7 @@
         <h2 style="color: rgb(38, 176, 98);">DONE:</h2>
         <div class="info-section">
             <ul>
-                <li> Run massively parallel computations</li>
+                <li> Run parallel computations on client's first available GPU device</li>
                 <li> Handles setup for a read/write buffer pair, with user input, and  </li>
                 <li> Has a list of <a href="https://github.com/bonisdev">helpful constants</a> to for use in the WGSL shaders </li>
                 <li> Get buffers from GPU back to CPU at any time steps </li>
@@ -243,9 +247,11 @@
                 <option value="2">Gradual </option>
             </select>
         </div>
+        <br>
 
         
         <div id="demoCanvasContainer"></div>
+        <br>
 
         <!--Code-->
         <div class="code-editor-container">
@@ -270,6 +276,8 @@
 	
     <script>
         var EZ_EXAMPLE = null
+        var INTERVAL_ID = null
+
         function handleSelectChange(value) {
             loadExample( Number(value) )
         }
@@ -279,14 +287,7 @@
             alert('You selected: ' + value);
         }
 
-        function loadExample( exampleInd ){
-            if( EZ_EXAMPLE ){
-                EZ_EXAMPLE.killdeath()
-            }
-        }
-        function clearExample(){
-
-        }
+        
 
 
         document.addEventListener("DOMContentLoaded", function() {
@@ -324,107 +325,220 @@
     </script>
 
     <script>
-        const computeWGSL = 
-        `
- 
 
-            var neighbs: f32 = 0;
-            neighbs += cellAttVal(cell.x+1, cell.y+1, 0);      
-            neighbs += cellAttVal(cell.x+1, cell.y  , 0);      
-            neighbs += cellAttVal(cell.x+1, cell.y-1, 0);     
-            neighbs += cellAttVal(cell.x  , cell.y-1, 0);    
-            neighbs += cellAttVal(cell.x-1, cell.y-1, 0);   
-            neighbs += cellAttVal(cell.x-1, cell.y  , 0);     
-            neighbs += cellAttVal(cell.x-1, cell.y+1, 0);  
-            neighbs += cellAttVal(cell.x  , cell.y+1, 0);       
+        const ALL_EXAMPLES = [
 
-            var myState: f32 = cellStateIn[ EZ_CELL_IND ];
+        // 1 (ONE) - Standard Conway Game of Life
+            () => {
+                let computeWGSL = 
+                `
+                    var neighbs: f32 = 0;
+                    neighbs += cellAttVal(cell.x+1, cell.y+1, 0);      
+                    neighbs += cellAttVal(cell.x+1, cell.y  , 0);      
+                    neighbs += cellAttVal(cell.x+1, cell.y-1, 0);     
+                    neighbs += cellAttVal(cell.x  , cell.y-1, 0);    
+                    neighbs += cellAttVal(cell.x-1, cell.y-1, 0);   
+                    neighbs += cellAttVal(cell.x-1, cell.y  , 0);     
+                    neighbs += cellAttVal(cell.x-1, cell.y+1, 0);  
+                    neighbs += cellAttVal(cell.x  , cell.y+1, 0);       
 
+                    var myState: f32 = EZ_STATE_IN[ EZ_CELL_IND ];
+
+                    
+                    if (myState == 1 && (neighbs < 2 || neighbs > 3)) {
+                        EZ_STATE_OUT[ EZ_CELL_IND ] = 0.0;
+                    }
+                    else if (myState == 0 && neighbs == 3) {
+                        EZ_STATE_OUT[ EZ_CELL_IND ] = 1.0;
+                    }
+                    else {
+                        EZ_STATE_OUT[ EZ_CELL_IND ] = myState;
+                    }
+                `;
+
+                let fragmentWGSL = 
+                `
+                    var rrr: f32 = 1;
+                    var ggg: f32 = 1;
+                    var bbb: f32 = 1;
+
+                    // if(cmpix == 0 && cmpiy == 0 ){
+                    //     rrr = 1;
+                    //     ggg = 1;
+                    //     bbb = 1;
+                    // }
+                    // else if(cmpix == 1 && cmpiy == 0 ){
+                    //     rrr = cellState[ rebuilt_instance + (0) * u32(grid.x * grid.y) ];
+                    //     ggg = 0;
+                    //     bbb = 0;
+                    // }
+                    // else if(cmpix == 0 && cmpiy == 1 ){
+                    //     rrr = 0;
+                    //     ggg = cellState[ rebuilt_instance + (1) * u32(grid.x * grid.y) ];
+                    //     bbb = 0;
+                    // }
+                    // else if(cmpix == 1 && cmpiy == 1 ){
+                    //     rrr = 0;
+                    //     ggg = 0;
+                    //     bbb = cellState[ rebuilt_instance + (2) * u32(grid.x * grid.y) ];
+                    // }
+
+                    if( cellState[ rebuilt_instance + (0) * u32(grid.x * grid.y) ] < 1 ){
+                        rrr = 0;
+                        ggg = 0;
+                        bbb = 0;
+                    }
+
+                    output.rVal = rrr;
+                    output.gVal = ggg;
+                    output.bVal = bbb; 
+                `;
+
+                // Usage example
+                let config = {
+
+                    CELL_SIZE: 2,
+                    CHUNK_SIZE: 256,
+
+                    CONTAINER_ID:   'demoCanvasContainer',    // DOM id to insdert canvas to
+                    RAND_SEED:      'randomseed12345678910', 
+                    STARTING_CONFIG: EZWG.ALL_BINS,      // couldve been EZWG.ALL_ZERO
+                    COMPUTE_WGSL: `
+                        // The custom WGSL code goes here
+                        ${computeWGSL}
+                    `,
+
+                    FRAGMENT_WGSL: `
+                        // The custom WGSL code goes here
+                        ${fragmentWGSL}
+                    `
+                };
+
+                // Intital set the default runner to this
+                EZ_EXAMPLE = new EZWG( config);
+            },
+
+        // 2 (TWO) - Standard Conway Game of Life (QUADRANTS)
+            () => {
+                let computeWGSL = 
+                `
+                    var neighbs: f32 = 0;
+                    neighbs += cellAttVal(cell.x+1, cell.y+1, 0);      
+                    neighbs += cellAttVal(cell.x+1, cell.y  , 0);      
+                    neighbs += cellAttVal(cell.x+1, cell.y-1, 0);     
+                    neighbs += cellAttVal(cell.x  , cell.y-1, 0);    
+                    neighbs += cellAttVal(cell.x-1, cell.y-1, 0);   
+                    neighbs += cellAttVal(cell.x-1, cell.y  , 0);     
+                    neighbs += cellAttVal(cell.x-1, cell.y+1, 0);  
+                    neighbs += cellAttVal(cell.x  , cell.y+1, 0);       
+
+                    var myState: f32 = EZ_STATE_IN[ EZ_CELL_IND ];
+
+                    
+                    if (myState == 1 && (neighbs < 2 || neighbs > 3)) {
+                        EZ_STATE_OUT[ EZ_CELL_IND ] = 0.0;
+                    }
+                    else if (myState == 0 && neighbs == 3) {
+                        EZ_STATE_OUT[ EZ_CELL_IND ] = 1.0;
+                    }
+                    else {
+                        EZ_STATE_OUT[ EZ_CELL_IND ] = myState;
+                    }
+                `;
+
+                let fragmentWGSL = 
+                `
+                    var rrr: f32 = 1;
+                    var ggg: f32 = 1;
+                    var bbb: f32 = 1;
+
+                    // if(cmpix == 0 && cmpiy == 0 ){
+                    //     rrr = 1;
+                    //     ggg = 1;
+                    //     bbb = 1;
+                    // }
+                    // else if(cmpix == 1 && cmpiy == 0 ){
+                    //     rrr = cellState[ rebuilt_instance + (0) * u32(grid.x * grid.y) ];
+                    //     ggg = 0;
+                    //     bbb = 0;
+                    // }
+                    // else if(cmpix == 0 && cmpiy == 1 ){
+                    //     rrr = 0;
+                    //     ggg = cellState[ rebuilt_instance + (1) * u32(grid.x * grid.y) ];
+                    //     bbb = 0;
+                    // }
+                    // else if(cmpix == 1 && cmpiy == 1 ){
+                    //     rrr = 0;
+                    //     ggg = 0;
+                    //     bbb = cellState[ rebuilt_instance + (2) * u32(grid.x * grid.y) ];
+                    // }
+
+                    if( cellState[ rebuilt_instance + (0) * u32(grid.x * grid.y) ] < 1 ){
+                        rrr = 0;
+                        ggg = 0;
+                        bbb = 0;
+                    }
+
+                    output.rVal = rrr;
+                    output.gVal = ggg;
+                    output.bVal = bbb; 
+                `;
+
+                // Usage example
+                let config = {
+
+                    CELL_SIZE: 2,
+                    CHUNK_SIZE: 256,
+
+                    CONTAINER_ID:   'demoCanvasContainer',    // DOM id to insdert canvas to
+                    RAND_SEED:      'randomseed12345678910', 
+                    STARTING_CONFIG: EZWG.ALL_BINS,      // couldve been EZWG.ALL_ZERO
+                    COMPUTE_WGSL: `
+                        // The custom WGSL code goes here
+                        ${computeWGSL}
+                    `,
+
+                    FRAGMENT_WGSL: `
+                        // The custom WGSL code goes here
+                        ${fragmentWGSL}
+                    `
+
+                };
+
+                // Intital set the default runner to this
+                EZ_EXAMPLE = new EZWG( config);
+            },
             
-            if (myState == 1 && (neighbs < 2 || neighbs > 3)) {
-                cellStateOut[ EZ_CELL_IND ] = 0.0;
+        ];
+        
+        // Initial load the first one
+        ALL_EXAMPLES[0]();
+
+        function loadExample( exampleInd ){
+            if( EZ_EXAMPLE ){
+                EZ_EXAMPLE.killdeath()
             }
-            else if (myState == 0 && neighbs == 3) {
-                cellStateOut[ EZ_CELL_IND ] = 1.0;
-            }
-            else {
-                cellStateOut[ EZ_CELL_IND ] = myState;
-            }
+        }
+        function clearExample(){
 
-
-
-            
-        `;
-
-        const fragmentWGSL = 
-        `
-            var rrr: f32 = 1;
-            var ggg: f32 = 1;
-            var bbb: f32 = 1;
-
-            // if(cmpix == 0 && cmpiy == 0 ){
-            //     rrr = 1;
-            //     ggg = 1;
-            //     bbb = 1;
-            // }
-            // else if(cmpix == 1 && cmpiy == 0 ){
-            //     rrr = cellState[ rebuilt_instance + (0) * u32(grid.x * grid.y) ];
-            //     ggg = 0;
-            //     bbb = 0;
-            // }
-            // else if(cmpix == 0 && cmpiy == 1 ){
-            //     rrr = 0;
-            //     ggg = cellState[ rebuilt_instance + (1) * u32(grid.x * grid.y) ];
-            //     bbb = 0;
-            // }
-            // else if(cmpix == 1 && cmpiy == 1 ){
-            //     rrr = 0;
-            //     ggg = 0;
-            //     bbb = cellState[ rebuilt_instance + (2) * u32(grid.x * grid.y) ];
-            // }
-
-            if( cellState[ rebuilt_instance + (0) * u32(grid.x * grid.y) ] < 1 ){
-                rrr = 0;
-                ggg = 0;
-                bbb = 0;
-            }
-
-            output.rVal = rrr;
-            output.gVal = ggg;
-            output.bVal = bbb; 
-        `;
-
-        // Usage example
-        const config = { 
-            CONTAINER_ID:   'demoCanvasContainer',    // DOM id to insdert canvas to
-            RAND_SEED:      'randomseed12345678910', 
-            STARTING_CONFIG: EZWG.ALL_BINS,      // couldve been EZWG.ALL_ZERO
-            COMPUTE_WGSL: `
-                // The custom WGSL code goes here
-                ${computeWGSL}
-            `,
-
-            FRAGMENT_WGSL: `
-                // The custom WGSL code goes here
-                ${fragmentWGSL}
-            `
-
-        };
-
-         var webGPUCA = new EZWG( config);
-
+        }
 
         (async () => {  
-            await webGPUCA.init(); 
-            console.log('webGPUCA has been initialized'); 
-            runTester()
+            await EZ_EXAMPLE.init(); 
+            console.log('EZ_EXAMPLE has been initialized'); 
+            startExampleLoop()
         })();
 
-        function runTester(){
+        function startExampleLoop(){
  
-		    setInterval( () => {
-                webGPUCA.run() 
-            }, webGPUCA.UPDATE_INTERVAL );
+		    INTERVAL_ID = setInterval( () => {
+                if( EZ_EXAMPLE.flaggedForDeath ){
+
+                }
+                else{
+                    EZ_EXAMPLE.run() 
+                }
+            }, EZ_EXAMPLE.UPDATE_INTERVAL );
 
         }
     </script>

@@ -33,7 +33,8 @@ class EZWG {
             STARTING_CONFIG: EZWG.ALL_ZERO,
             COMPUTE_WGSL: '',
             FRAGMENT_WGSL: '',
-            READ_BACK_FUNC: ( currentStep, entireBuffer ) => {}
+            READ_BACK_FUNC: ( currentStep, entireBuffer ) => {},
+            CELL_SIZE: 8
         };
  
         // Merge defaults with the provided config
@@ -52,6 +53,9 @@ class EZWG {
         this.COMPUTE_WGSL = this._validateString(this.config.COMPUTE_WGSL, 'COMPUTE_WGSL');
         this.FRAGMENT_WGSL = this._validateString(this.config.FRAGMENT_WGSL, 'FRAGMENT_WGSL');
         this.READ_BACK_FUNC = this.config.READ_BACK_FUNC;
+        this.CELL_SIZE = this._validatePositiveInteger(this.config.CELL_SIZE, 'CELL_SIZE');
+
+
         this.RAND = new PseudRand( this.RAND_SEED );
 
 
@@ -59,8 +63,7 @@ class EZWG {
         // Game time specific variables
         //128 x 128
         this.GRID_SIZE = (this.CHUNK_SIZE * this.CHUNKS_ACROSS)
-        this.TOTAL_CELLS = this.GRID_SIZE * this.GRID_SIZE
-        this.CELL_SIZE = 8;
+        this.TOTAL_CELLS = this.GRID_SIZE * this.GRID_SIZE 
         this.UPDATE_INTERVAL = 50
         this.WORKGROUP_SIZE = 8
 
@@ -70,6 +73,7 @@ class EZWG {
         this.loaded = false;
         this.READ_BUFFER_BUSY = false;
         this.step = 0;
+        this.flaggedForDeath = false;
 
         this.canvas = null;
         this.context = null
@@ -145,35 +149,35 @@ class EZWG {
 
     // Method to create a canvas if WebGPU is not supported
     _createNoWebGPUCanvas() {
-        const canvas = document.createElement('canvas');
-        canvas.width = 400;
-        canvas.height = 400;
-        document.body.appendChild(canvas);
-        const context = canvas.getContext('2d');
-        context.fillStyle = 'gray';
-        context.fillRect(0, 0, canvas.width, canvas.height);
+        this.canvas = document.createElement('canvas');
+        this.canvas.width = 400;
+        this.canvas.height = 400;
+        document.body.appendChild(this.canvas);
+        this.context = this.canvas.getContext('2d');
+        this.context.fillStyle = 'gray';
+        this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
         const text = 'no web gpu detected';
         const fontSize = 20;
-        context.font = `${fontSize}px Arial`;
+        this.context.font = `${fontSize}px Arial`;
 
         let offsetX = 0;
         let offsetY = 0;
 
         const drawText = (timestamp) => {
-            context.clearRect(0, 0, canvas.width, canvas.height);
-            context.fillStyle = 'gray';
-            context.fillRect(0, 0, canvas.width, canvas.height);
+            this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            this.context.fillStyle = 'gray';
+            this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
             function pseudoRandom(x, y, t) {
                 // A simple pseudo-random function
                 return Math.sin(x * 12.9898 + y * 78.233 + t * 0.5) * 43758.5453 % 1;
             }
             
-            for (let i = 0; i < canvas.height / fontSize; i++) {
-                for (let j = 0; j < canvas.width / fontSize; j++) {
+            for (let i = 0; i < this.canvas.height / fontSize; i++) {
+                for (let j = 0; j < this.canvas.width / fontSize; j++) {
                     const pulse = Math.sin((timestamp + (i + j) * 100) / 500) * 0.5 + 0.5;
-                    context.fillStyle = `rgba(255, 0, 0, ${pulse})`;
+                    this.context.fillStyle = `rgba(255, 0, 0, ${pulse})`;
             
                     const angle = (timestamp / 1000) % (2 * Math.PI);
                     
@@ -184,19 +188,19 @@ class EZWG {
                     const x = j * fontSize + offsetX;
                     const y = i * fontSize + fontSize + offsetY;
             
-                    context.save();
-                    context.translate(x, y);
-                    context.rotate(angle);
-                    context.fillText(text, -context.measureText(text).width / 2, 0);
-                    context.restore();
+                    this.context.save();
+                    this.context.translate(x, y);
+                    this.context.rotate(angle);
+                    this.context.fillText(text, -this.context.measureText(text).width / 2, 0);
+                    this.context.restore();
                 }
             }
             
 
             offsetX += 1;
             offsetY += 1;
-            if (offsetX > canvas.width) offsetX = 0;
-            if (offsetY > canvas.height) offsetY = 0;
+            if (offsetX > this.canvas.width) offsetX = 0;
+            if (offsetY > this.canvas.height) offsetY = 0;
 
             requestAnimationFrame(drawText);
         };
@@ -381,7 +385,7 @@ class EZWG {
 
 			@group(0) @binding(0) var<uniform> grid: vec2f;
 			@group(0) @binding(1) var<storage> cellState: array<f32>; 
-			@group(0) @binding(4) var<storage> extraConfigVals: array<f32>;
+			@group(0) @binding(4) var<storage> EZ_EXTRA_VALS: array<f32>;
 
 			@vertex
 			fn vertexMain(@location(0) position: vec2f, @builtin(instance_index) instance: u32) -> VertexOutput {
@@ -502,10 +506,10 @@ class EZWG {
         let simulationWSGLCode = `
 			@group(0) @binding(0) var<uniform> grid: vec2f;
 
-			@group(0) @binding(1) var<storage> cellStateIn: array<f32>;
-			@group(0) @binding(2) var<storage, read_write> cellStateOut: array<f32>;
-			@group(0) @binding(3) var<storage, read_write> userInputTemp: array<f32>;
-			@group(0) @binding(4) var<storage> extraConfigVals: array<f32>;
+			@group(0) @binding(1) var<storage> EZ_STATE_IN: array<f32>;
+			@group(0) @binding(2) var<storage, read_write> EZ_STATE_OUT: array<f32>;
+			@group(0) @binding(3) var<storage, read_write> EZ_USER_INPUT: array<f32>;
+			@group(0) @binding(4) var<storage> EZ_EXTRA_VALS: array<f32>;
 
 			fn cellIndex(cell: vec2u) -> u32 {
 				//let sze: u32 = 
@@ -546,16 +550,16 @@ class EZWG {
 			}
 
 			fn cellAttVal(x: u32, y: u32, att: u32) -> f32 {
-				return cellStateIn[ att * u32( grid.x * grid.y ) + cellIndex(vec2(x, y)) ];
+				return EZ_STATE_IN[ att * u32( grid.x * grid.y ) + cellIndex(vec2(x, y)) ];
 			}
 
             
 			fn cellAttValChunk(x: u32, y: u32, att: u32, ocx: u32, ocy: u32, chks: u32) -> f32 {
-				return cellStateIn[ att * u32( grid.x * grid.y ) + cellIndexChk(vec2(x, y), ocx, ocy, chks) ];
+				return EZ_STATE_IN[ att * u32( grid.x * grid.y ) + cellIndexChk(vec2(x, y), ocx, ocy, chks) ];
 			}
             // Multiply the x and the y by chunk location
             fn cellAttValChunkRelative(x: u32, y: u32, att: u32, ocx: u32, ocy: u32, chks: u32) -> f32 {
-				return cellStateIn[ att * u32( grid.x * grid.y ) + cellIndexChkRel(vec2( x, y), ocx, ocy, chks)  ];
+				return EZ_STATE_IN[ att * u32( grid.x * grid.y ) + cellIndexChkRel(vec2( x, y), ocx, ocy, chks)  ];
 			}
 
             fn getSwingWeight( rawWeght: f32 ) -> f32 {
@@ -563,7 +567,7 @@ class EZWG {
             }
 
 			fn celldAttVal(x: u32, y: u32, att: u32) -> f32 {
-                return cellStateIn[ att * u32( grid.x * grid.y ) + cellIndex(vec2(x, y)) ];
+                return EZ_STATE_IN[ att * u32( grid.x * grid.y ) + cellIndex(vec2(x, y)) ];
             }
 
 			@compute @workgroup_size( ${this.WORKGROUP_SIZE}, ${this.WORKGROUP_SIZE} )
@@ -596,23 +600,23 @@ class EZWG {
 
                         let EZ_lastInputToChange         = EZ_TOTAL_CELLS * i_EZ_userInputCounter + EZ_CELL_IND;  
 
-                        var nuVal: f32 = cellStateIn[EZ_lastInputToChange];
+                        var nuVal: f32 = EZ_STATE_IN[EZ_lastInputToChange];
 
                         // Get the min max of the input coordinattres
-                        var minX: u32 = min( u32(userInputTemp[0]),  u32(userInputTemp[2]));
-                        var maxX: u32 = max( u32(userInputTemp[0]),  u32(userInputTemp[2]));
-                        var minY: u32 = min( u32(userInputTemp[1]),  u32(userInputTemp[3]));
-                        var maxY: u32 = max( u32(userInputTemp[1]),  u32(userInputTemp[3]));
-                        if( userInputTemp[6] > 0 ){
+                        var minX: u32 = min( u32(EZ_USER_INPUT[0]),  u32(EZ_USER_INPUT[2]));
+                        var maxX: u32 = max( u32(EZ_USER_INPUT[0]),  u32(EZ_USER_INPUT[2]));
+                        var minY: u32 = min( u32(EZ_USER_INPUT[1]),  u32(EZ_USER_INPUT[3]));
+                        var maxY: u32 = max( u32(EZ_USER_INPUT[1]),  u32(EZ_USER_INPUT[3]));
+                        if( EZ_USER_INPUT[6] > 0 ){
                             if( cell.x >= minX && cell.x <= maxX && cell.y >= minY && cell.y <= maxY ){
-                                cellStateOut[ EZ_lastInputToChange ] = 1; 
+                                EZ_STATE_OUT[ EZ_lastInputToChange ] = 1; 
                             }
                             else{
-                                cellStateOut[ EZ_lastInputToChange ] = nuVal; 
+                                EZ_STATE_OUT[ EZ_lastInputToChange ] = nuVal; 
                             }
                         }
                         else{
-                            cellStateOut[ EZ_lastInputToChange ] = nuVal; 
+                            EZ_STATE_OUT[ EZ_lastInputToChange ] = nuVal; 
                         }
                         i_EZ_userInputCounter++;
                     }
