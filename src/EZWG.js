@@ -107,6 +107,23 @@ class EZWG {
   
     }
 
+    killdeath(){
+        
+        if (this.device) {
+            this.vertexBuffer?.destroy();
+            this.cellStateStorage?.forEach(buffer => buffer?.destroy());
+            this.userInputTempStorage?.destroy();
+            this.cellStateStorageForRead?.destroy();
+            this.device = null;
+            this.context = null;
+
+            // Remove canvas
+            if (this.canvas && this.canvas.parentNode) {
+                this.canvas.parentNode.removeChild(this.canvas);
+            }
+        }
+    }
+
     async init() {
         if (!('gpu' in navigator)) {
             document.addEventListener('DOMContentLoaded', () => this._createNoWebGPUCanvas());

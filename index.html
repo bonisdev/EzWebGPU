@@ -449,8 +449,8 @@
                 let fragmentWGSL = 
                 `
                     var rrr: f32 = 1;
-                    var ggg: f32 = 1;
-                    var bbb: f32 = 1;
+                    var ggg: f32 = 0;
+                    var bbb: f32 = 0;
 
                     // if(cmpix == 0 && cmpiy == 0 ){
                     //     rrr = 1;
@@ -488,7 +488,8 @@
                 let config = {
 
                     CELL_SIZE: 2,
-                    CHUNK_SIZE: 256,
+                    CHUNK_SIZE: 128,
+                    CHUNKS_ACROSS: 2,
 
                     CONTAINER_ID:   'demoCanvasContainer',    // DOM id to insdert canvas to
                     RAND_SEED:      'randomseed12345678910', 
@@ -511,26 +512,29 @@
             
         ];
         
-        // Initial load the first one
-        ALL_EXAMPLES[0]();
 
-        function loadExample( exampleInd ){
-            if( EZ_EXAMPLE ){
-                EZ_EXAMPLE.killdeath()
-            }
+        function loadExample( exampleIndex ){
+
+            // Initial load the first one
+            ALL_EXAMPLES[exampleIndex]();
+
+            (async () => {  
+                await EZ_EXAMPLE.init(); 
+                console.log('EZ_EXAMPLE has been initialized'); 
+                startExampleLoop()
+            })();
+
         }
         function clearExample(){
-
-        }
-
-        (async () => {  
-            await EZ_EXAMPLE.init(); 
-            console.log('EZ_EXAMPLE has been initialized'); 
-            startExampleLoop()
-        })();
-
+            if( INTERVAL_ID ){
+                clearInterval( INTERVAL_ID )
+            }
+            if( EZ_EXAMPLE ){
+                EZ_EXAMPLE.flaggedForDeath = true;
+                //EZ_EXAMPLE.killdeath()
+            }
+        } 
         function startExampleLoop(){
- 
 		    INTERVAL_ID = setInterval( () => {
                 if( EZ_EXAMPLE.flaggedForDeath ){
 
@@ -538,9 +542,14 @@
                 else{
                     EZ_EXAMPLE.run() 
                 }
-            }, EZ_EXAMPLE.UPDATE_INTERVAL );
-
+            }, EZ_EXAMPLE.UPDATE_INTERVAL ); 
         }
+
+
+        clearExample();
+        loadExample(1)
+
+
     </script>
 </body>
 
