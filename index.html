@@ -42,6 +42,32 @@
 			justify-content: center;
 			align-items: center;
 		}
+
+
+
+        
+        .hidden{
+            transition: all 1s ease-in-out !important;
+            opacity:0;
+            max-height:0;
+            max-width:0;
+            display:none;
+            padding:0 !important;
+            margin:0 !important;
+            border:none !important;
+            overflow:hidden;
+        }
+        .disable-selectt {
+            user-select: none; /* supported by Chrome and Opera */
+            -webkit-user-select: none; /* Safari */
+            -khtml-user-select: none; /* Konqueror HTML */
+            -moz-user-select: none; /* Firefox */
+            -ms-user-select: none; /* Internet Explorer/Edge */
+            -webkit-user-drag: none;
+        }
+
+
+
         
         /*Rounded elment*/ 
 		.rounded-element {
@@ -170,6 +196,9 @@
 	</style>
 	<link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
 	<title>EzWebGPU.js</title>
+
+    <script src="src/PseudRand.js"></script>
+    <script src="src/EZWG.js"></script>
 </head>
 
 
@@ -214,6 +243,9 @@
                 <option value="2">Gradual </option>
             </select>
         </div>
+
+        
+        <div id="demoCanvasContainer"></div>
 
         <!--Code-->
         <div class="code-editor-container">
@@ -283,8 +315,118 @@
             // Initialize line numbers
             updateLineNumbers();
         });
+
+
+
+        
         
 
+    </script>
+
+    <script>
+        const computeWGSL = 
+        `
+ 
+
+            var neighbs: f32 = 0;
+            neighbs += cellAttVal(cell.x+1, cell.y+1, 0);      
+            neighbs += cellAttVal(cell.x+1, cell.y  , 0);      
+            neighbs += cellAttVal(cell.x+1, cell.y-1, 0);     
+            neighbs += cellAttVal(cell.x  , cell.y-1, 0);    
+            neighbs += cellAttVal(cell.x-1, cell.y-1, 0);   
+            neighbs += cellAttVal(cell.x-1, cell.y  , 0);     
+            neighbs += cellAttVal(cell.x-1, cell.y+1, 0);  
+            neighbs += cellAttVal(cell.x  , cell.y+1, 0);       
+
+            var myState: f32 = cellStateIn[ EZ_CELL_IND ];
+
+            
+            if (myState == 1 && (neighbs < 2 || neighbs > 3)) {
+                cellStateOut[ EZ_CELL_IND ] = 0.0;
+            }
+            else if (myState == 0 && neighbs == 3) {
+                cellStateOut[ EZ_CELL_IND ] = 1.0;
+            }
+            else {
+                cellStateOut[ EZ_CELL_IND ] = myState;
+            }
+
+
+
+            
+        `;
+
+        const fragmentWGSL = 
+        `
+            var rrr: f32 = 1;
+            var ggg: f32 = 1;
+            var bbb: f32 = 1;
+
+            // if(cmpix == 0 && cmpiy == 0 ){
+            //     rrr = 1;
+            //     ggg = 1;
+            //     bbb = 1;
+            // }
+            // else if(cmpix == 1 && cmpiy == 0 ){
+            //     rrr = cellState[ rebuilt_instance + (0) * u32(grid.x * grid.y) ];
+            //     ggg = 0;
+            //     bbb = 0;
+            // }
+            // else if(cmpix == 0 && cmpiy == 1 ){
+            //     rrr = 0;
+            //     ggg = cellState[ rebuilt_instance + (1) * u32(grid.x * grid.y) ];
+            //     bbb = 0;
+            // }
+            // else if(cmpix == 1 && cmpiy == 1 ){
+            //     rrr = 0;
+            //     ggg = 0;
+            //     bbb = cellState[ rebuilt_instance + (2) * u32(grid.x * grid.y) ];
+            // }
+
+            if( cellState[ rebuilt_instance + (0) * u32(grid.x * grid.y) ] < 1 ){
+                rrr = 0;
+                ggg = 0;
+                bbb = 0;
+            }
+
+            output.rVal = rrr;
+            output.gVal = ggg;
+            output.bVal = bbb; 
+        `;
+
+        // Usage example
+        const config = { 
+            CONTAINER_ID:   'demoCanvasContainer',    // DOM id to insdert canvas to
+            RAND_SEED:      'randomseed12345678910', 
+            STARTING_CONFIG: EZWG.ALL_BINS,      // couldve been EZWG.ALL_ZERO
+            COMPUTE_WGSL: `
+                // The custom WGSL code goes here
+                ${computeWGSL}
+            `,
+
+            FRAGMENT_WGSL: `
+                // The custom WGSL code goes here
+                ${fragmentWGSL}
+            `
+
+        };
+
+         var webGPUCA = new EZWG( config);
+
+
+        (async () => {  
+            await webGPUCA.init(); 
+            console.log('webGPUCA has been initialized'); 
+            runTester()
+        })();
+
+        function runTester(){
+ 
+		    setInterval( () => {
+                webGPUCA.run() 
+            }, webGPUCA.UPDATE_INTERVAL );
+
+        }
     </script>
 </body>
 
