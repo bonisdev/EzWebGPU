@@ -451,16 +451,16 @@ class EZWG {
 
                 const EZ_cellParts: u32 = `+this.PARTS_ACROSS+`u; 
                 
-                var chunkX: u32 = ( u32(instance/2) / (CHUNK_SIZE) ) % CHUNKS_ACROSS;
-                var chunkY: u32 = ( u32(instance/2) / (CHUNK_SIZE*CHUNKS_ACROSS) );
-                chunkY = (chunkY / CHUNK_SIZE) % CHUNKS_ACROSS;
+                var EZ_CHUNK_X: u32 = ( u32(instance/2) / (CHUNK_SIZE) ) % CHUNKS_ACROSS;
+                var EZ_CHUNK_Y: u32 = ( u32(instance/2) / (CHUNK_SIZE*CHUNKS_ACROSS) );
+                EZ_CHUNK_Y = (EZ_CHUNK_Y / CHUNK_SIZE) % CHUNKS_ACROSS;
     
 
 
                 var rebuilt_instance: u32 = u32(cell.x) + u32(cell.y) * u32(grid.y);
                 
 
-                var chnkInd: u32 = (chunkX  + chunkY * CHUNKS_ACROSS);
+                var EZ_CHUNK_IND: u32 = (EZ_CHUNK_X  + EZ_CHUNK_Y * CHUNKS_ACROSS);
 
                 ` + this.FRAGMENT_WGSL + `
 				

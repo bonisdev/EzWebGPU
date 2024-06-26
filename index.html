@@ -423,14 +423,14 @@
                 let computeWGSL = 
                 `
                     var neighbs: f32 = 0;
-                    neighbs += cellAttVal(cell.x+1, cell.y+1, 0);      
-                    neighbs += cellAttVal(cell.x+1, cell.y  , 0);      
-                    neighbs += cellAttVal(cell.x+1, cell.y-1, 0);     
-                    neighbs += cellAttVal(cell.x  , cell.y-1, 0);    
-                    neighbs += cellAttVal(cell.x-1, cell.y-1, 0);   
-                    neighbs += cellAttVal(cell.x-1, cell.y  , 0);     
-                    neighbs += cellAttVal(cell.x-1, cell.y+1, 0);  
-                    neighbs += cellAttVal(cell.x  , cell.y+1, 0);       
+                    neighbs += cellAttValChunkRelative(cell.x+1, cell.y+1, 0, EZ_CHUNK_X, EZ_CHUNK_Y, EZ_CHUNK_SIZE );      
+                    neighbs += cellAttValChunkRelative(cell.x+1, cell.y  , 0, EZ_CHUNK_X, EZ_CHUNK_Y, EZ_CHUNK_SIZE );      
+                    neighbs += cellAttValChunkRelative(cell.x+1, cell.y-1, 0, EZ_CHUNK_X, EZ_CHUNK_Y, EZ_CHUNK_SIZE );     
+                    neighbs += cellAttValChunkRelative(cell.x  , cell.y-1, 0, EZ_CHUNK_X, EZ_CHUNK_Y, EZ_CHUNK_SIZE );    
+                    neighbs += cellAttValChunkRelative(cell.x-1, cell.y-1, 0, EZ_CHUNK_X, EZ_CHUNK_Y, EZ_CHUNK_SIZE );   
+                    neighbs += cellAttValChunkRelative(cell.x-1, cell.y  , 0, EZ_CHUNK_X, EZ_CHUNK_Y, EZ_CHUNK_SIZE );     
+                    neighbs += cellAttValChunkRelative(cell.x-1, cell.y+1, 0, EZ_CHUNK_X, EZ_CHUNK_Y, EZ_CHUNK_SIZE );  
+                    neighbs += cellAttValChunkRelative(cell.x  , cell.y+1, 0, EZ_CHUNK_X, EZ_CHUNK_Y, EZ_CHUNK_SIZE );       
 
                     var myState: f32 = EZ_STATE_IN[ EZ_CELL_IND ];
 
@@ -449,34 +449,37 @@
                 let fragmentWGSL = 
                 `
                     var rrr: f32 = 1;
-                    var ggg: f32 = 0;
+                    var ggg: f32 = 1;
                     var bbb: f32 = 0;
 
-                    // if(cmpix == 0 && cmpiy == 0 ){
-                    //     rrr = 1;
-                    //     ggg = 1;
-                    //     bbb = 1;
-                    // }
-                    // else if(cmpix == 1 && cmpiy == 0 ){
-                    //     rrr = cellState[ rebuilt_instance + (0) * u32(grid.x * grid.y) ];
-                    //     ggg = 0;
-                    //     bbb = 0;
-                    // }
-                    // else if(cmpix == 0 && cmpiy == 1 ){
-                    //     rrr = 0;
-                    //     ggg = cellState[ rebuilt_instance + (1) * u32(grid.x * grid.y) ];
-                    //     bbb = 0;
-                    // }
-                    // else if(cmpix == 1 && cmpiy == 1 ){
-                    //     rrr = 0;
-                    //     ggg = 0;
-                    //     bbb = cellState[ rebuilt_instance + (2) * u32(grid.x * grid.y) ];
-                    // }
+                    
 
                     if( cellState[ rebuilt_instance + (0) * u32(grid.x * grid.y) ] < 1 ){
                         rrr = 0;
                         ggg = 0;
                         bbb = 0;
+                    }
+                    else{
+                        if(EZ_CHUNK_X == 0 && EZ_CHUNK_Y == 0 ){
+                            rrr = 1;
+                            ggg = 1;
+                            bbb = 1;
+                        }
+                        else if(EZ_CHUNK_X == 1 && EZ_CHUNK_Y == 0 ){
+                            rrr = cellState[ rebuilt_instance + (0) * u32(grid.x * grid.y) ];
+                            ggg = 0;
+                            bbb = 0;
+                        }
+                        else if(EZ_CHUNK_X == 0 && EZ_CHUNK_Y == 1 ){
+                            rrr = 0;
+                            ggg = cellState[ rebuilt_instance + (1) * u32(grid.x * grid.y) ];
+                            bbb = 0;
+                        }
+                        else if(EZ_CHUNK_X == 1 && EZ_CHUNK_Y == 1 ){
+                            rrr = 0;
+                            ggg = 0;
+                            bbb = cellState[ rebuilt_instance + (2) * u32(grid.x * grid.y) ];
+                        }
                     }
 
                     output.rVal = rrr;
