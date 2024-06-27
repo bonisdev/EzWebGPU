@@ -368,22 +368,22 @@
                     //     bbb = 1;
                     // }
                     // else if(cmpix == 1 && cmpiy == 0 ){
-                    //     rrr = cellState[ rebuilt_instance + (0) * u32(grid.x * grid.y) ];
+                    //     rrr = cellState[ EZ_REBUILT_INSTANCE + (0) * u32(grid.x * grid.y) ];
                     //     ggg = 0;
                     //     bbb = 0;
                     // }
                     // else if(cmpix == 0 && cmpiy == 1 ){
                     //     rrr = 0;
-                    //     ggg = cellState[ rebuilt_instance + (1) * u32(grid.x * grid.y) ];
+                    //     ggg = cellState[ EZ_REBUILT_INSTANCE + (1) * u32(grid.x * grid.y) ];
                     //     bbb = 0;
                     // }
                     // else if(cmpix == 1 && cmpiy == 1 ){
                     //     rrr = 0;
                     //     ggg = 0;
-                    //     bbb = cellState[ rebuilt_instance + (2) * u32(grid.x * grid.y) ];
+                    //     bbb = cellState[ EZ_REBUILT_INSTANCE + (2) * u32(grid.x * grid.y) ];
                     // }
 
-                    if( cellState[ rebuilt_instance + (0) * u32(grid.x * grid.y) ] < 1 ){
+                    if( cellState[ EZ_REBUILT_INSTANCE + (0) * u32(grid.x * grid.y) ] < 1 ){
                         rrr = 0;
                         ggg = 0;
                         bbb = 0;
@@ -452,9 +452,9 @@
                     var ggg: f32 = 1;
                     var bbb: f32 = 0;
 
-                    
+                    var cellVal: f32 = cellState[ EZ_REBUILT_INSTANCE + (0) * u32(grid.x * grid.y) ];
 
-                    if( cellState[ rebuilt_instance + (0) * u32(grid.x * grid.y) ] < 1 ){
+                    if( cellVal < 1 ){
                         rrr = 0;
                         ggg = 0;
                         bbb = 0;
@@ -462,23 +462,23 @@
                     else{
                         if(EZ_CHUNK_X == 0 && EZ_CHUNK_Y == 0 ){
                             rrr = 1;
-                            ggg = 1;
-                            bbb = 1;
+                            ggg = 0;
+                            bbb = 0;
                         }
                         else if(EZ_CHUNK_X == 1 && EZ_CHUNK_Y == 0 ){
-                            rrr = cellState[ rebuilt_instance + (0) * u32(grid.x * grid.y) ];
-                            ggg = 0;
+                            rrr = 0;
+                            ggg = 1;
                             bbb = 0;
                         }
                         else if(EZ_CHUNK_X == 0 && EZ_CHUNK_Y == 1 ){
                             rrr = 0;
-                            ggg = cellState[ rebuilt_instance + (1) * u32(grid.x * grid.y) ];
-                            bbb = 0;
+                            ggg = 0;
+                            bbb = 1;
                         }
                         else if(EZ_CHUNK_X == 1 && EZ_CHUNK_Y == 1 ){
-                            rrr = 0;
-                            ggg = 0;
-                            bbb = cellState[ rebuilt_instance + (2) * u32(grid.x * grid.y) ];
+                            rrr = 1;
+                            ggg = 1;
+                            bbb = 0;
                         }
                     }
 

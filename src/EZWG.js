@@ -405,22 +405,22 @@ class EZWG {
 			@group(0) @binding(4) var<storage> EZ_EXTRA_VALS: array<f32>;
 
 			@vertex
-			fn vertexMain(@location(0) position: vec2f, @builtin(instance_index) instance: u32) -> VertexOutput {
+			fn vertexMain(@location(0) position: vec2f, @builtin(instance_index) EZ_INSTANCE: u32) -> VertexOutput {
 				var output: VertexOutput;
 				// let corrected_instance = f32(instance);
-				let i = f32(instance);
+				let i = f32(EZ_INSTANCE);
                 let caW: f32 = `+this.PARTS_ACROSS+`f;
                 let caWu: u32 = `+this.PARTS_ACROSS+`u;
 
                 // Global Grid meta
-                var rawCol: u32 = instance % u32(grid.x * caW);
-                var rawRow: u32 = instance / u32(grid.x * caW); 
+                var rawCol: u32 = EZ_INSTANCE % u32(grid.x * caW);
+                var rawRow: u32 = EZ_INSTANCE / u32(grid.x * caW); 
 
 				let cell = vec2f( f32(rawCol / caWu), f32(rawRow / caWu) );
 
                 // Component metas
-                var cmpix: u32 = instance % caWu;
-                var cmpiy: u32 = (instance / u32(grid.x * caW)) % caWu;
+                var cmpix: u32 = EZ_INSTANCE % caWu;
+                var cmpiy: u32 = (EZ_INSTANCE / u32(grid.x * caW)) % caWu;
                 var cmpind: u32 = cmpix + cmpiy * caWu;
 
 
@@ -451,13 +451,13 @@ class EZWG {
 
                 const EZ_cellParts: u32 = `+this.PARTS_ACROSS+`u; 
                 
-                var EZ_CHUNK_X: u32 = ( u32(instance/2) / (CHUNK_SIZE) ) % CHUNKS_ACROSS;
-                var EZ_CHUNK_Y: u32 = ( u32(instance/2) / (CHUNK_SIZE*CHUNKS_ACROSS) );
+                var EZ_CHUNK_X: u32 = ( u32(EZ_INSTANCE/2) / (CHUNK_SIZE) ) % CHUNKS_ACROSS;
+                var EZ_CHUNK_Y: u32 = ( u32(EZ_INSTANCE/2) / (CHUNK_SIZE*CHUNKS_ACROSS) );
                 EZ_CHUNK_Y = (EZ_CHUNK_Y / CHUNK_SIZE) % CHUNKS_ACROSS;
     
 
 
-                var rebuilt_instance: u32 = u32(cell.x) + u32(cell.y) * u32(grid.y);
+                var EZ_REBUILT_INSTANCE: u32 = u32(cell.x) + u32(cell.y) * u32(grid.y);
                 
 
                 var EZ_CHUNK_IND: u32 = (EZ_CHUNK_X  + EZ_CHUNK_Y * CHUNKS_ACROSS);
