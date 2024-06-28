@@ -521,7 +521,7 @@
             // Initial load the first one
             ALL_EXAMPLES[exampleIndex]();
 
-            (async () => {  
+            (async () => {
                 await EZ_EXAMPLE.init(); 
                 console.log('EZ_EXAMPLE has been initialized'); 
                 startExampleLoop()
@@ -540,7 +540,7 @@
         function startExampleLoop(){
 		    INTERVAL_ID = setInterval( () => {
                 if( EZ_EXAMPLE.flaggedForDeath ){
-
+                    
                 }
                 else{
                     EZ_EXAMPLE.run() 

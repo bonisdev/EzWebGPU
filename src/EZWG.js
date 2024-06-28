@@ -409,12 +409,16 @@ class EZWG {
 				var output: VertexOutput;
 				// let corrected_instance = f32(instance);
 				let i = f32(EZ_INSTANCE);
-                let caW: f32 = `+this.PARTS_ACROSS+`f;
+                let caW: f32 = `+ this.PARTS_ACROSS+`f;
                 let caWu: u32 = `+this.PARTS_ACROSS+`u;
 
+                
+                let EX_CELLS_ACROSS_X: u32 = u32( grid.x );
+                let EX_CELLS_ACROSS_Y: u32 = u32( grid.y );
+
                 // Global Grid meta
-                var rawCol: u32 = EZ_INSTANCE % u32(grid.x * caW);
-                var rawRow: u32 = EZ_INSTANCE / u32(grid.x * caW); 
+                var rawCol: u32 = EZ_INSTANCE % (EX_CELLS_ACROSS_X * caWu);
+                var rawRow: u32 = EZ_INSTANCE / rawCol;
 
 				let cell = vec2f( f32(rawCol / caWu), f32(rawRow / caWu) );
 
@@ -589,8 +593,11 @@ class EZWG {
 
 			@compute @workgroup_size( ${this.WORKGROUP_SIZE}, ${this.WORKGROUP_SIZE} )
 			fn computeMain(@builtin(global_invocation_id) cell: vec3u) {
-                 
-                let EZ_TOTAL_CELLS = u32(grid.x * grid.y);
+                
+                let EX_CELLS_ACROSS_X: u32 = u32( grid.x );
+                let EX_CELLS_ACROSS_Y: u32 = u32( grid.y );
+
+                let EZ_TOTAL_CELLS = EX_CELLS_ACROSS_X * EX_CELLS_ACROSS_Y;
                 let EZ_CELL_IND = cellIndex(cell.xy);
 
                 const EZ_CELL_VALS: u32  = `+this.CELL_VALS+`u;
