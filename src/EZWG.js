@@ -395,9 +395,9 @@ class EZWG {
 			struct VertexOutput {
 				@builtin(position) position: vec4f,
 				@location(0) cell: vec2f,
-				@location(1) rVal: f32,
-				@location(2) gVal: f32,
-				@location(3) bVal: f32
+				@location(1) red: f32,
+				@location(2) grn: f32,
+				@location(3) blu: f32
 			};
 
 			@group(0) @binding(0) var<uniform> grid: vec2f;
@@ -422,7 +422,6 @@ class EZWG {
                 // Global grid counting each component as a cell
                 var EZ_RAW_COL: u32 = EZ_INSTANCE % (EZ_CELLS_ACROSS_X * caWu);
                 var EZ_RAW_ROW: u32 = EZ_INSTANCE / (EZ_CELLS_ACROSS_Y * caWu);
-
 				let EZ_CELL = vec2f( f32(EZ_RAW_COL / caWu), f32(EZ_RAW_ROW / caWu) );
 
                 // Component metas
@@ -430,21 +429,18 @@ class EZWG {
                 var EZ_COMP_Y: u32 = EZ_RAW_ROW % caWu;
                 var EZ_COMP_IND: u32 = EZ_COMP_X + EZ_COMP_Y * caWu;
 
-
                 // Gets you to the center of the cell
-				let cellOffset: vec2f = EZ_CELL / grid * 2;
-
-                
-				var EZ_h_pos = (position+1) / grid - 1 + cellOffset;
+				let EZ_h_cellOffset: vec2f = EZ_CELL / grid * 2;
+				var EZ_h_pos = (position+1) / grid - 1 + EZ_h_cellOffset;
 
                 // Cell size 
                 var EZ_h_clsX: f32 = (1 / grid.x) * 2;
                 var EZ_h_clsY: f32 = (1 / grid.y) * 2;
-                var smlDx: f32 = (1/caW) * EZ_h_clsX;
-                var smlDy: f32 = (1/caW) * EZ_h_clsY;
+                var EZ_h_smlDx: f32 = (1/caW) * EZ_h_clsX;
+                var EZ_h_smlDy: f32 = (1/caW) * EZ_h_clsY;
 
-                EZ_h_pos.x = EZ_h_pos.x + (f32(EZ_COMP_X) * smlDx) - (EZ_h_clsX*0.5) + smlDx/2;
-                EZ_h_pos.y = EZ_h_pos.y + (f32(EZ_COMP_Y) * smlDy) - (EZ_h_clsY*0.5) + smlDy/2;
+                EZ_h_pos.x = EZ_h_pos.x + (f32(EZ_COMP_X) * EZ_h_smlDx) - (EZ_h_clsX*0.5) + EZ_h_smlDx/2;
+                EZ_h_pos.y = EZ_h_pos.y + (f32(EZ_COMP_Y) * EZ_h_smlDy) - (EZ_h_clsY*0.5) + EZ_h_smlDy/2;
 
 				EZ_OUTPUT.position = vec4f(EZ_h_pos, 0, 1);
 				EZ_OUTPUT.cell = EZ_CELL / (grid*1);
@@ -459,11 +455,8 @@ class EZWG {
                 var EZ_CHUNK_X: u32 = u32( EZ_RAW_COL/caWu ) / EZ_CHUNK_SIZE;
                 var EZ_CHUNK_Y: u32 = u32( EZ_RAW_ROW/caWu ) / EZ_CHUNK_SIZE;
     
-
-
                 var EZ_REBUILT_INSTANCE: u32 = u32(EZ_CELL.x) + u32(EZ_CELL.y) * u32(grid.y);
                 
-
                 var EZ_CHUNK_IND: u32 = (EZ_CHUNK_X  + EZ_CHUNK_Y * CHUNKS_ACROSS);
 
                 ` + this.FRAGMENT_WGSL + `
@@ -474,7 +467,7 @@ class EZWG {
 
 			@fragment
 			fn fragmentMain(input: VertexOutput) -> @location(0) vec4f { 
-				return vec4f( input.rVal, input.gVal, input.bVal, 1);
+				return vec4f( input.red, input.grn, input.blu, 1);
 			}
 		`;
  

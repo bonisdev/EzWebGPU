@@ -368,9 +368,9 @@
                         bbb = 0;
                     }
 
-                    EZ_OUTPUT.rVal = rrr;
-                    EZ_OUTPUT.gVal = ggg;
-                    EZ_OUTPUT.bVal = bbb; 
+                    EZ_OUTPUT.red = rrr;
+                    EZ_OUTPUT.grn = ggg;
+                    EZ_OUTPUT.blu = bbb; 
                 `;
 
                 // Usage example
@@ -461,9 +461,9 @@
                         }
                     }
 
-                    EZ_OUTPUT.rVal = rrr;
-                    EZ_OUTPUT.gVal = ggg;
-                    EZ_OUTPUT.bVal = bbb; 
+                    EZ_OUTPUT.red = rrr;
+                    EZ_OUTPUT.grn = ggg;
+                    EZ_OUTPUT.blu = bbb; 
                 `;
 
                 // Usage example
@@ -507,7 +507,6 @@
 
                     var myState: f32 = EZ_STATE_IN[ EZ_CELL_IND ];
 
-                    
                     if (myState == 1 && (neighbs < 2 || neighbs > 3)) {
                         EZ_STATE_OUT[ EZ_CELL_IND ] = 0.0;
                     }
@@ -565,17 +564,17 @@
                         
                     }
 
-                    EZ_OUTPUT.rVal = rrr;
-                    EZ_OUTPUT.gVal = ggg;
-                    EZ_OUTPUT.bVal = bbb; 
+                    EZ_OUTPUT.red = rrr;
+                    EZ_OUTPUT.grn = ggg;
+                    EZ_OUTPUT.blu = bbb; 
                 `;
 
                 // Usage example
                 let config = {
 
                     CELL_SIZE: 5,
-                    CHUNK_SIZE: 64,
-                    CHUNKS_ACROSS: 2,
+                    CHUNK_SIZE: 32,
+                    CHUNKS_ACROSS: 3,
                     PARTS_ACROSS: 5,
 
                     CONTAINER_ID:   'demoCanvasContainer',    // DOM id to insdert canvas to
