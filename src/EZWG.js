@@ -406,62 +406,62 @@ class EZWG {
 
 			@vertex
 			fn vertexMain(@location(0) position: vec2f, @builtin(instance_index) EZ_INSTANCE: u32) -> VertexOutput {
-				var output: VertexOutput;
+				var EZ_OUTPUT: VertexOutput;
+                
 				// let corrected_instance = f32(instance);
 				let i = f32(EZ_INSTANCE);
                 let caW: f32 = `+ this.PARTS_ACROSS+`f;
                 let caWu: u32 = `+this.PARTS_ACROSS+`u;
 
+                let EZ_CHUNK_SIZE: u32 = `+this.CHUNK_SIZE+`u;
+
                 
-                let EX_CELLS_ACROSS_X: u32 = u32( grid.x );
-                let EX_CELLS_ACROSS_Y: u32 = u32( grid.y );
+                let EZ_CELLS_ACROSS_X: u32 = u32( grid.x );
+                let EZ_CELLS_ACROSS_Y: u32 = u32( grid.y );
 
-                // Global Grid meta
-                var rawCol: u32 = EZ_INSTANCE % (EX_CELLS_ACROSS_X * caWu);
-                var rawRow: u32 = EZ_INSTANCE / rawCol;
+                // Global grid counting each component as a cell
+                var EZ_RAW_COL: u32 = EZ_INSTANCE % (EZ_CELLS_ACROSS_X * caWu);
+                var EZ_RAW_ROW: u32 = EZ_INSTANCE / (EZ_CELLS_ACROSS_Y * caWu);
 
-				let cell = vec2f( f32(rawCol / caWu), f32(rawRow / caWu) );
+				let EZ_CELL = vec2f( f32(EZ_RAW_COL / caWu), f32(EZ_RAW_ROW / caWu) );
 
                 // Component metas
-                var cmpix: u32 = EZ_INSTANCE % caWu;
-                var cmpiy: u32 = (EZ_INSTANCE / u32(grid.x * caW)) % caWu;
-                var cmpind: u32 = cmpix + cmpiy * caWu;
+                var EZ_COMP_X: u32 = EZ_RAW_COL % caWu;
+                var EZ_COMP_Y: u32 = EZ_RAW_ROW % caWu;
+                var EZ_COMP_IND: u32 = EZ_COMP_X + EZ_COMP_Y * caWu;
 
 
                 // Gets you to the center of the cell
-				let cellOffset = cell / grid * 2;
+				let cellOffset: vec2f = EZ_CELL / grid * 2;
 
                 
-				var gridPos = (position+1) / grid - 1 + cellOffset;
+				var EZ_h_pos = (position+1) / grid - 1 + cellOffset;
 
-                
-                // Now THIS: gets you to the top left of the components now
-                // (subtract 1 / cellWidth/2 to and then multiply by how many components dep ur in)
-                var clsxe: f32 = (1 / grid.x) * 2;
-                var clsye: f32 = (1 / grid.x) * 2;// CELL SIZE
-                var smlDx: f32 = (1/caW) * clsxe;
-                var smlDy: f32 = (1/caW) * clsye;
+                // Cell size 
+                var EZ_h_clsX: f32 = (1 / grid.x) * 2;
+                var EZ_h_clsY: f32 = (1 / grid.y) * 2;
+                var smlDx: f32 = (1/caW) * EZ_h_clsX;
+                var smlDy: f32 = (1/caW) * EZ_h_clsY;
 
-                gridPos.x = gridPos.x + (f32(cmpix) * smlDx) - (clsxe*0.5) + smlDx/2;
-                gridPos.y = gridPos.y + (f32(cmpiy) * smlDy) - (clsye*0.5) + smlDy/2;
+                EZ_h_pos.x = EZ_h_pos.x + (f32(EZ_COMP_X) * smlDx) - (EZ_h_clsX*0.5) + smlDx/2;
+                EZ_h_pos.y = EZ_h_pos.y + (f32(EZ_COMP_Y) * smlDy) - (EZ_h_clsY*0.5) + smlDy/2;
 
-				output.position = vec4f(gridPos, 0, 1);
-				output.cell = cell / (grid*1);
+				EZ_OUTPUT.position = vec4f(EZ_h_pos, 0, 1);
+				EZ_OUTPUT.cell = EZ_CELL / (grid*1);
 				
                 //--------------------------------------------------------- Newly added to sort
-                const numJooses: u32 = `+this.CELL_VALS+`u; 
+                const EZ_ALL_VALS: u32 = `+this.CELL_VALS+`u; 
                 const CHUNK_SIZE: u32 = `+this.CHUNK_SIZE+`u;
-                const CHUNKS_ACROSS: u32 = `+this.CHUNKS_ACROSS+`u; 
+                const CHUNKS_ACROSS: u32 = `+this.CHUNKS_ACROSS+`u;
 
                 const EZ_cellParts: u32 = `+this.PARTS_ACROSS+`u; 
                 
-                var EZ_CHUNK_X: u32 = ( u32(EZ_INSTANCE/2) / (CHUNK_SIZE) ) % CHUNKS_ACROSS;
-                var EZ_CHUNK_Y: u32 = ( u32(EZ_INSTANCE/2) / (CHUNK_SIZE*CHUNKS_ACROSS) );
-                EZ_CHUNK_Y = (EZ_CHUNK_Y / CHUNK_SIZE) % CHUNKS_ACROSS;
+                var EZ_CHUNK_X: u32 = u32( EZ_RAW_COL/caWu ) / EZ_CHUNK_SIZE;
+                var EZ_CHUNK_Y: u32 = u32( EZ_RAW_ROW/caWu ) / EZ_CHUNK_SIZE;
     
 
 
-                var EZ_REBUILT_INSTANCE: u32 = u32(cell.x) + u32(cell.y) * u32(grid.y);
+                var EZ_REBUILT_INSTANCE: u32 = u32(EZ_CELL.x) + u32(EZ_CELL.y) * u32(grid.y);
                 
 
                 var EZ_CHUNK_IND: u32 = (EZ_CHUNK_X  + EZ_CHUNK_Y * CHUNKS_ACROSS);
@@ -469,7 +469,7 @@ class EZWG {
                 ` + this.FRAGMENT_WGSL + `
 				
 
-				return output;
+				return EZ_OUTPUT;
 			}
 
 			@fragment
@@ -532,86 +532,38 @@ class EZWG {
 			@group(0) @binding(3) var<storage, read_write> EZ_USER_INPUT: array<f32>;
 			@group(0) @binding(4) var<storage> EZ_EXTRA_VALS: array<f32>;
 
-			fn cellIndex(cell: vec2u) -> u32 {
-				//let sze: u32 = 
+			fn EZ_helper_cellIndex(cell: vec2u) -> u32 {
 				return ((cell.y+u32(grid.y)) % u32(grid.y)) * u32(grid.x) + ((cell.x+u32(grid.x)) % u32(grid.x));
-			}
-            fn cellIndexChk(cell: vec2u, ogcx: u32, ogcy: u32, chk: u32) -> u32 { 
-
-                var nuCellX: u32 = cell.x;
-                var nuCellY: u32 = cell.y;
-
-
-                // Internal chunk wrap before the big external wrap
-                nuCellX = nuCellX % chk;
-                nuCellX = nuCellX + ogcx * chk;
-
-                nuCellY = nuCellY % chk;
-                nuCellY = nuCellY + ogcy * chk;
-
-                
-				return ((nuCellY+u32(grid.y)) % u32(grid.y)) * u32(grid.x) + ((nuCellX+u32(grid.x)) % u32(grid.x));   
-			}
-            
-            fn cellIndexChkRel(cell: vec2u, ogcx: u32, ogcy: u32, chk: u32) -> u32 { 
-
+			} 
+            fn EZ_helper_cellIndexChkRel(cell: vec2u, ogcx: u32, ogcy: u32, chk: u32) -> u32 {
                 var nuCellX: u32 = cell.x + (ogcx*chk);
-                var nuCellY: u32 = cell.y + (ogcy*chk);
-
-
-                // Internal chunk wrap before the big external wrap
-                //nuCellX = (nuCellX/ % chk;
-                //nuCellX = nuCellX + ogcx * chk;
-
-                //nuCellY = nuCellY % chk;
-                //nuCellY = nuCellY + ogcy * chk;
-
-                
+                var nuCellY: u32 = cell.y + (ogcy*chk); 
 				return ((nuCellY+u32(grid.y)) % u32(grid.y)) * u32(grid.x) + ((nuCellX+u32(grid.x)) % u32(grid.x));   
 			}
 
-			fn cellAttVal(x: u32, y: u32, att: u32) -> f32 {
-				return EZ_STATE_IN[ att * u32( grid.x * grid.y ) + cellIndex(vec2(x, y)) ];
-			}
-
-            
-			fn cellAttValChunk(x: u32, y: u32, att: u32, ocx: u32, ocy: u32, chks: u32) -> f32 {
-				return EZ_STATE_IN[ att * u32( grid.x * grid.y ) + cellIndexChk(vec2(x, y), ocx, ocy, chks) ];
-			}
-            // Multiply the x and the y by chunk location
-            fn cellAttValChunkRelative(x: u32, y: u32, att: u32, ocx: u32, ocy: u32, chks: u32) -> f32 {
-				return EZ_STATE_IN[ att * u32( grid.x * grid.y ) + cellIndexChkRel(vec2( x, y), ocx, ocy, chks)  ];
-			}
-
-            fn getSwingWeight( rawWeght: f32 ) -> f32 {
-                return ( rawWeght * 2.0) - 1.0;
-            }
-
-			fn celldAttVal(x: u32, y: u32, att: u32) -> f32 {
-                return EZ_STATE_IN[ att * u32( grid.x * grid.y ) + cellIndex(vec2(x, y)) ];
-            }
+            // Use any X,Y, attribute locations, and chunk coordinates
+            fn EZ_GET_CELL(x: u32, y: u32, att: u32, ocx: u32, ocy: u32 ) -> f32 {
+				return EZ_STATE_IN[ att * u32( grid.x * grid.y ) + EZ_helper_cellIndexChkRel( vec2( (x+`+this.CHUNK_SIZE+`u)%`+this.CHUNK_SIZE+`u,(y+`+this.CHUNK_SIZE+`u)%`+this.CHUNK_SIZE+`u ), ocx, ocy, `+this.CHUNK_SIZE+`u )  ];
+			} 
 
 			@compute @workgroup_size( ${this.WORKGROUP_SIZE}, ${this.WORKGROUP_SIZE} )
-			fn computeMain(@builtin(global_invocation_id) cell: vec3u) {
+			fn computeMain(@builtin(global_invocation_id) EZ_CELL: vec3u) {
                 
-                let EX_CELLS_ACROSS_X: u32 = u32( grid.x );
-                let EX_CELLS_ACROSS_Y: u32 = u32( grid.y );
-
-                let EZ_TOTAL_CELLS = EX_CELLS_ACROSS_X * EX_CELLS_ACROSS_Y;
-                let EZ_CELL_IND = cellIndex(cell.xy);
-
+                let EZ_CELLS_ACROSS_X: u32 = u32( grid.x );
+                let EZ_CELLS_ACROSS_Y: u32 = u32( grid.y );
+                let EZ_TOTAL_CELLS = EZ_CELLS_ACROSS_X * EZ_CELLS_ACROSS_Y;
+ 
                 const EZ_CELL_VALS: u32  = `+this.CELL_VALS+`u;
-
-                //const stimStations = `+this.CELL_STIM_LOCATIONS+`u;
-
                 const EZ_CHUNK_SIZE: u32 = `+this.CHUNK_SIZE+`u;
                 const EZ_CHUNKS_ACROSS: u32 = `+this.CHUNKS_ACROSS+`u; 
-    
-                var EZ_CHUNK_X: u32 = cell.x / EZ_CHUNK_SIZE;
-                var EZ_CHUNK_Y: u32 = cell.y / EZ_CHUNK_SIZE;
- 
 
-                // The chunk shift
+                let EZX = EZ_CELL.x;
+                let EZY = EZ_CELL.y;
+                let EZ_CELL_IND = EZ_helper_cellIndex(EZ_CELL.xy);
+    
+                // Chunk logic
+                var EZ_CHUNK_X: u32 = EZX / EZ_CHUNK_SIZE;
+                var EZ_CHUNK_Y: u32 = EZY / EZ_CHUNK_SIZE;
                 var EZ_CHUNK_IND: u32 = EZ_CHUNK_X + EZ_CHUNK_Y*EZ_CHUNKS_ACROSS;
 
                 ` + this.COMPUTE_WGSL + `
@@ -632,7 +584,7 @@ class EZWG {
                         var minY: u32 = min( u32(EZ_USER_INPUT[1]),  u32(EZ_USER_INPUT[3]));
                         var maxY: u32 = max( u32(EZ_USER_INPUT[1]),  u32(EZ_USER_INPUT[3]));
                         if( EZ_USER_INPUT[6] > 0 ){
-                            if( cell.x >= minX && cell.x <= maxX && cell.y >= minY && cell.y <= maxY ){
+                            if( EZX >= minX && EZX <= maxX && EZY >= minY && EZY <= maxY ){
                                 EZ_STATE_OUT[ EZ_lastInputToChange ] = 1; 
                             }
                             else{
@@ -1105,6 +1057,52 @@ class EZWG {
                     ii + c*(grid_size*grid_size)
                 ] = 0;
             } 
+        }
+    }
+
+    handleMouseDown( event, canvas, ezweb ){
+        ezweb.isDragging = true;
+        const rect = canvas.getBoundingClientRect();
+        const xx = event.clientX - rect.left;
+        const yy = event.clientY - rect.top;
+        ezweb.dragStartX = Math.floor( xx / ezweb.CELL_SIZE );
+        ezweb.dragStartY = Math.floor( yy / ezweb.CELL_SIZE );
+    }
+
+    handleMouseUp(event, canvas, ezweb) {
+        if (ezweb.isDragging) {
+            ezweb.isDragging = false;
+            const rect = canvas.getBoundingClientRect();
+            const xx = event.clientX - rect.left;
+            const yy = event.clientY - rect.top;
+            ezweb.dragEndX = Math.floor( xx / ezweb.CELL_SIZE );
+            ezweb.dragEndY = Math.floor( yy / ezweb.CELL_SIZE );
+
+            if(ezweb.liveInput[6] < 1){
+                //[0] startSelectX
+                //[1] endSelectY
+                //[2] startSelectY
+                //[3] endSelectX
+
+                //[4] toolMode (0) = nothing, (1) = place, 
+                //[5] exctra tool meta
+                //[6] activate input or not
+
+                ezweb.liveInput[0] = ezweb.dragStartX;
+                ezweb.liveInput[1] = (ezweb.GRID_SIZE-1) - ezweb.dragStartY;
+                ezweb.liveInput[2] = ezweb.dragEndX;
+                ezweb.liveInput[3] = (ezweb.GRID_SIZE-1) - ezweb.dragEndY;     // Bounding box coordinates
+                ezweb.liveInput[4] = 1;                   // Tool   
+                ezweb.liveInput[5] = 0;//,  tool meta
+                ezweb.liveInput[6] = 1;// set the flag to YES use
+
+                ezweb.LAST_CELL_X = ezweb.dragStartX;
+                ezweb.LAST_CELL_Y = ezweb.dragStartY;
+
+                console.log(ezweb.liveInput)
+                
+            }
+
         }
     }
  

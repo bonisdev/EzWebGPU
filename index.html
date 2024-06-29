@@ -216,16 +216,16 @@
         </div> 
 
         <div style="max-width: 70%;">
-            <p>EzWebGPU is a wrapper for <a href="https://www.w3.org/TR/webgpu/">WebGPU</a> which handles setting up a read and write buffer pair to quickly write, deploy, and visually debug compute shaders very painlessly.  You can quickly setup cellular automata simulations and get <span style="color: rgb(241, 92, 179);font-style: bold;">BILLIONS</span> of FLOPS all in the browser.  See on: <a href="https://github.com/bonisdev">GitHub</a></p>
+            <p>EzWebGPU is a wrapper for <a href="https://www.w3.org/TR/webgpu/">WebGPU</a> which handles setting up a read and write buffer pair to quickly write, deploy, and visually debug compute shaders very painlessly.  You can quickly setup cellular automata simulations and get <span style="color: rgb(241, 92, 179);font-style: bold;">TRILLIONS</span> of FLOPS all in the browser.  See on: <a href="https://github.com/bonisdev">GitHub</a></p>
         </div>
-        <h2 style="color: rgb(38, 176, 98);">DONE:</h2>
+        <h2 style="color: rgb(38, 176, 98);">WHAT:</h2>
         <div class="info-section">
             <ul>
-                <li> Run parallel computations on client's first available GPU device</li>
-                <li> Handles setup for a read/write buffer pair, with user input, and  </li>
-                <li> Has a list of <a href="https://github.com/bonisdev">helpful constants</a> to for use in the WGSL shaders </li>
-                <li> Get buffers from GPU back to CPU at any time steps </li>
-                <li> Read back values to the CPU at any frequency</li>
+                <li> Run a compute shader on a grid of cells's using the first available GPU device </li>
+                <li> Handles setup for a read/write buffer pair, useful for highly customizable cellular automatas </li>
+                <li> Has a list of <a href="https://github.com/bonisdev">pre computed constants</a> to increase the <a href="https://www.w3.org/TR/WGSL/">WGSL</a> readability </li>
+                <li> Get the memory buffers back from the GPU to the CPU (Javascript f32 buffer) </li>
+                <li> Load static buffers for the shader program to read while inside the GPU </li>
             </ul>
         </div>
         
@@ -234,7 +234,8 @@
             <ul>
                 <li> Add U32 buffer types (currently only F32)</li>
                 <li> Ability to edit the shader compute pipeline</li>
-                <li> UI grid editor  </li>
+                <li> Custom vertices (instead of just squares) </li>
+                <li> UI grid editor </li>
                 <li> Add more examples (send here: <a href="https://twitter.com/BonisDev">@BonisDev</a>)</li>
             </ul>
         </div>
@@ -333,18 +334,17 @@
                 let computeWGSL = 
                 `
                     var neighbs: f32 = 0;
-                    neighbs += cellAttVal(cell.x+1, cell.y+1, 0);      
-                    neighbs += cellAttVal(cell.x+1, cell.y  , 0);      
-                    neighbs += cellAttVal(cell.x+1, cell.y-1, 0);     
-                    neighbs += cellAttVal(cell.x  , cell.y-1, 0);    
-                    neighbs += cellAttVal(cell.x-1, cell.y-1, 0);   
-                    neighbs += cellAttVal(cell.x-1, cell.y  , 0);     
-                    neighbs += cellAttVal(cell.x-1, cell.y+1, 0);  
-                    neighbs += cellAttVal(cell.x  , cell.y+1, 0);       
+                    neighbs += EZ_GET_CELL( EZX+1, EZY+1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );      
+                    neighbs += EZ_GET_CELL( EZX+1, EZY  , 0, EZ_CHUNK_X, EZ_CHUNK_Y );      
+                    neighbs += EZ_GET_CELL( EZX+1, EZY-1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );     
+                    neighbs += EZ_GET_CELL( EZX  , EZY-1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );    
+                    neighbs += EZ_GET_CELL( EZX-1, EZY-1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );   
+                    neighbs += EZ_GET_CELL( EZX-1, EZY  , 0, EZ_CHUNK_X, EZ_CHUNK_Y );     
+                    neighbs += EZ_GET_CELL( EZX-1, EZY+1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );  
+                    neighbs += EZ_GET_CELL( EZX  , EZY+1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );
 
                     var myState: f32 = EZ_STATE_IN[ EZ_CELL_IND ];
 
-                    
                     if (myState == 1 && (neighbs < 2 || neighbs > 3)) {
                         EZ_STATE_OUT[ EZ_CELL_IND ] = 0.0;
                     }
@@ -360,28 +360,7 @@
                 `
                     var rrr: f32 = 1;
                     var ggg: f32 = 1;
-                    var bbb: f32 = 1;
-
-                    // if(cmpix == 0 && cmpiy == 0 ){
-                    //     rrr = 1;
-                    //     ggg = 1;
-                    //     bbb = 1;
-                    // }
-                    // else if(cmpix == 1 && cmpiy == 0 ){
-                    //     rrr = cellState[ EZ_REBUILT_INSTANCE + (0) * u32(grid.x * grid.y) ];
-                    //     ggg = 0;
-                    //     bbb = 0;
-                    // }
-                    // else if(cmpix == 0 && cmpiy == 1 ){
-                    //     rrr = 0;
-                    //     ggg = cellState[ EZ_REBUILT_INSTANCE + (1) * u32(grid.x * grid.y) ];
-                    //     bbb = 0;
-                    // }
-                    // else if(cmpix == 1 && cmpiy == 1 ){
-                    //     rrr = 0;
-                    //     ggg = 0;
-                    //     bbb = cellState[ EZ_REBUILT_INSTANCE + (2) * u32(grid.x * grid.y) ];
-                    // }
+                    var bbb: f32 = 1; 
 
                     if( cellState[ EZ_REBUILT_INSTANCE + (0) * u32(grid.x * grid.y) ] < 1 ){
                         rrr = 0;
@@ -389,9 +368,9 @@
                         bbb = 0;
                     }
 
-                    output.rVal = rrr;
-                    output.gVal = ggg;
-                    output.bVal = bbb; 
+                    EZ_OUTPUT.rVal = rrr;
+                    EZ_OUTPUT.gVal = ggg;
+                    EZ_OUTPUT.bVal = bbb; 
                 `;
 
                 // Usage example
@@ -423,14 +402,14 @@
                 let computeWGSL = 
                 `
                     var neighbs: f32 = 0;
-                    neighbs += cellAttValChunkRelative(cell.x+1, cell.y+1, 0, EZ_CHUNK_X, EZ_CHUNK_Y, EZ_CHUNK_SIZE );      
-                    neighbs += cellAttValChunkRelative(cell.x+1, cell.y  , 0, EZ_CHUNK_X, EZ_CHUNK_Y, EZ_CHUNK_SIZE );      
-                    neighbs += cellAttValChunkRelative(cell.x+1, cell.y-1, 0, EZ_CHUNK_X, EZ_CHUNK_Y, EZ_CHUNK_SIZE );     
-                    neighbs += cellAttValChunkRelative(cell.x  , cell.y-1, 0, EZ_CHUNK_X, EZ_CHUNK_Y, EZ_CHUNK_SIZE );    
-                    neighbs += cellAttValChunkRelative(cell.x-1, cell.y-1, 0, EZ_CHUNK_X, EZ_CHUNK_Y, EZ_CHUNK_SIZE );   
-                    neighbs += cellAttValChunkRelative(cell.x-1, cell.y  , 0, EZ_CHUNK_X, EZ_CHUNK_Y, EZ_CHUNK_SIZE );     
-                    neighbs += cellAttValChunkRelative(cell.x-1, cell.y+1, 0, EZ_CHUNK_X, EZ_CHUNK_Y, EZ_CHUNK_SIZE );  
-                    neighbs += cellAttValChunkRelative(cell.x  , cell.y+1, 0, EZ_CHUNK_X, EZ_CHUNK_Y, EZ_CHUNK_SIZE );       
+                    neighbs += EZ_GET_CELL(EZX+1, EZY+1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );      
+                    neighbs += EZ_GET_CELL(EZX+1, EZY  , 0, EZ_CHUNK_X, EZ_CHUNK_Y );      
+                    neighbs += EZ_GET_CELL(EZX+1, EZY-1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );     
+                    neighbs += EZ_GET_CELL(EZX  , EZY-1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );    
+                    neighbs += EZ_GET_CELL(EZX-1, EZY-1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );   
+                    neighbs += EZ_GET_CELL(EZX-1, EZY  , 0, EZ_CHUNK_X, EZ_CHUNK_Y );     
+                    neighbs += EZ_GET_CELL(EZX-1, EZY+1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );  
+                    neighbs += EZ_GET_CELL(EZX  , EZY+1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );       
 
                     var myState: f32 = EZ_STATE_IN[ EZ_CELL_IND ];
 
@@ -482,9 +461,9 @@
                         }
                     }
 
-                    output.rVal = rrr;
-                    output.gVal = ggg;
-                    output.bVal = bbb; 
+                    EZ_OUTPUT.rVal = rrr;
+                    EZ_OUTPUT.gVal = ggg;
+                    EZ_OUTPUT.bVal = bbb; 
                 `;
 
                 // Usage example
@@ -493,6 +472,111 @@
                     CELL_SIZE: 2,
                     CHUNK_SIZE: 128,
                     CHUNKS_ACROSS: 2,
+
+                    CONTAINER_ID:   'demoCanvasContainer',    // DOM id to insdert canvas to
+                    RAND_SEED:      'randomseed12345678910', 
+                    STARTING_CONFIG: EZWG.ALL_BINS,      // couldve been EZWG.ALL_ZERO
+                    COMPUTE_WGSL: `
+                        // The custom WGSL code goes here
+                        ${computeWGSL}
+                    `,
+
+                    FRAGMENT_WGSL: `
+                        // The custom WGSL code goes here
+                        ${fragmentWGSL}
+                    `
+
+                };
+
+                // Intital set the default runner to this
+                EZ_EXAMPLE = new EZWG( config);
+            },
+        // 3 (THREE) - Standard Conway Game of Life (QUADRANTS + COMPONENT)
+            () => {
+                let computeWGSL = 
+                `
+                    var neighbs: f32 = 0;
+                    neighbs += EZ_GET_CELL(EZX+1, EZY+1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );      
+                    neighbs += EZ_GET_CELL(EZX+1, EZY  , 0, EZ_CHUNK_X, EZ_CHUNK_Y );      
+                    neighbs += EZ_GET_CELL(EZX+1, EZY-1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );     
+                    neighbs += EZ_GET_CELL(EZX  , EZY-1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );    
+                    neighbs += EZ_GET_CELL(EZX-1, EZY-1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );   
+                    neighbs += EZ_GET_CELL(EZX-1, EZY  , 0, EZ_CHUNK_X, EZ_CHUNK_Y );     
+                    neighbs += EZ_GET_CELL(EZX-1, EZY+1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );  
+                    neighbs += EZ_GET_CELL(EZX  , EZY+1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );       
+
+                    var myState: f32 = EZ_STATE_IN[ EZ_CELL_IND ];
+
+                    
+                    if (myState == 1 && (neighbs < 2 || neighbs > 3)) {
+                        EZ_STATE_OUT[ EZ_CELL_IND ] = 0.0;
+                    }
+                    else if (myState == 0 && neighbs == 3) {
+                        EZ_STATE_OUT[ EZ_CELL_IND ] = 1.0;
+                    }
+                    else {
+                        EZ_STATE_OUT[ EZ_CELL_IND ] = myState;
+                    }
+                `;
+
+                let fragmentWGSL = 
+                `
+                    var rrr: f32 = 1;
+                    var ggg: f32 = 1;
+                    var bbb: f32 = 0;
+
+                    var cellVal: f32 = cellState[ EZ_REBUILT_INSTANCE + (0) * u32(grid.x * grid.y) ];
+
+                    if( cellVal < 1 ){
+                        rrr = 0;
+                        ggg = 0;
+                        bbb = 0;
+                    }
+                    else{
+
+                        if( EZ_COMP_Y == 4 && EZ_COMP_X == 3 ){
+                            rrr = 0.4;
+                            ggg = 0.3;
+                            bbb = 0.4;
+                        }
+                        else{
+                            if(EZ_CHUNK_X == 0 && EZ_CHUNK_Y == 0 ){
+                                rrr = 1;
+                                ggg = 0;
+                                bbb = 0;
+                            }
+                            else if(EZ_CHUNK_X == 1 && EZ_CHUNK_Y == 0 ){
+                                rrr = 0;
+                                ggg = 1;
+                                bbb = 0;
+                            }
+                            else if(EZ_CHUNK_X == 0 && EZ_CHUNK_Y == 1 ){
+                                rrr = 0;
+                                ggg = 0;
+                                bbb = 1;
+                            }
+                            else if(EZ_CHUNK_X == 1 && EZ_CHUNK_Y == 1 ){
+                                rrr = 1;
+                                ggg = 1;
+                                bbb = 0;
+                            }
+                        }
+
+                        
+                    }
+
+                    EZ_OUTPUT.rVal = rrr;
+                    EZ_OUTPUT.gVal = ggg;
+                    EZ_OUTPUT.bVal = bbb; 
+                `;
+
+                // Usage example
+                let config = {
+
+                    CELL_SIZE: 5,
+                    CHUNK_SIZE: 64,
+                    CHUNKS_ACROSS: 2,
+                    PARTS_ACROSS: 5,
 
                     CONTAINER_ID:   'demoCanvasContainer',    // DOM id to insdert canvas to
                     RAND_SEED:      'randomseed12345678910', 
@@ -550,7 +634,7 @@
 
 
         clearExample();
-        loadExample(1)
+        loadExample(2)
 
 
     </script>
