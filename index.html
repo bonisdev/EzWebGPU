@@ -139,7 +139,7 @@
             width: 600px;
             border: 1px solid #ccc;
             border-radius: 5px;
-            background-color: #fff;
+            background-color: #361414;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
         
@@ -197,7 +197,15 @@
             overflow: auto;
         }
 
+        #extraTitle{
+            color: rgb(238, 208, 40)
+        }
 	</style>
+    <script>
+        var htmlInject0 = `
+        
+        `;
+    </script>
 	<link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
 	<title>EzWebGPU.js</title>
 
@@ -229,16 +237,7 @@
             </ul>
         </div>
         
-        <h2 style="color: rgb(198, 190, 36);">TODO:</h2>
-        <div class="todo-section">
-            <ul>
-                <li> Add U32 buffer types (currently only F32) </li>
-                <li> Ability to edit the shader compute pipeline </li>
-                <li> Custom vertices (instead of just squares) </li>
-                <li> UI grid editor </li>
-                <li> Add more examples (send here: <a href="https://twitter.com/BonisDev">@BonisDev</a>) </li>
-            </ul>
-        </div>
+        
 
 		<p>Examples (<a href="https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API#browser_compatibility">Must have chrome</a>):</p>
         <div class="dropdown">
@@ -259,16 +258,37 @@
         <br>
         <div id="extraTitle"></div>
 
+        <br>
+        <!--  Use this:  https://highlight.hohli.com/?language=rust&theme=a11y-dark&numbers=1 -->
+        <div id="exampleCode0">
+            <pre style="font-family:monospace;color: rgb(248, 248, 242); background-color: rgb(43, 43, 43); font-weight: 400; "><ol style="padding-left: 3em;"><li><span style="color: rgb(220, 198, 224); font-weight: 400;">let</span> <span style="color: rgb(255, 160, 122); font-weight: 400;">computeWGSL</span> = </li><li>`</li><li>    var neighbs: <span style="color: rgb(245, 171, 53); font-weight: 400;">f32</span> = <span style="color: rgb(245, 171, 53); font-weight: 400;">0</span>;</li><li>    neighbs += <span style="color: rgb(0, 224, 224); font-weight: 400;">EZ_GET_CELL</span>( EZX+<span style="color: rgb(245, 171, 53); font-weight: 400;">1</span>, EZY+<span style="color: rgb(245, 171, 53); font-weight: 400;">1</span>, <span style="color: rgb(245, 171, 53); font-weight: 400;">0</span>, EZ_CHUNK_X, EZ_CHUNK_Y );      </li><li>    neighbs += <span style="color: rgb(0, 224, 224); font-weight: 400;">EZ_GET_CELL</span>( EZX+<span style="color: rgb(245, 171, 53); font-weight: 400;">1</span>, EZY  , <span style="color: rgb(245, 171, 53); font-weight: 400;">0</span>, EZ_CHUNK_X, EZ_CHUNK_Y );      </li><li>    neighbs += <span style="color: rgb(0, 224, 224); font-weight: 400;">EZ_GET_CELL</span>( EZX+<span style="color: rgb(245, 171, 53); font-weight: 400;">1</span>, EZY-<span style="color: rgb(245, 171, 53); font-weight: 400;">1</span>, <span style="color: rgb(245, 171, 53); font-weight: 400;">0</span>, EZ_CHUNK_X, EZ_CHUNK_Y );     </li><li>    neighbs += <span style="color: rgb(0, 224, 224); font-weight: 400;">EZ_GET_CELL</span>( EZX  , EZY-<span style="color: rgb(245, 171, 53); font-weight: 400;">1</span>, <span style="color: rgb(245, 171, 53); font-weight: 400;">0</span>, EZ_CHUNK_X, EZ_CHUNK_Y );    </li><li>    neighbs += <span style="color: rgb(0, 224, 224); font-weight: 400;">EZ_GET_CELL</span>( EZX-<span style="color: rgb(245, 171, 53); font-weight: 400;">1</span>, EZY-<span style="color: rgb(245, 171, 53); font-weight: 400;">1</span>, <span style="color: rgb(245, 171, 53); font-weight: 400;">0</span>, EZ_CHUNK_X, EZ_CHUNK_Y );   </li><li>    neighbs += <span style="color: rgb(0, 224, 224); font-weight: 400;">EZ_GET_CELL</span>( EZX-<span style="color: rgb(245, 171, 53); font-weight: 400;">1</span>, EZY  , <span style="color: rgb(245, 171, 53); font-weight: 400;">0</span>, EZ_CHUNK_X, EZ_CHUNK_Y );     </li><li>    neighbs += <span style="color: rgb(0, 224, 224); font-weight: 400;">EZ_GET_CELL</span>( EZX-<span style="color: rgb(245, 171, 53); font-weight: 400;">1</span>, EZY+<span style="color: rgb(245, 171, 53); font-weight: 400;">1</span>, <span style="color: rgb(245, 171, 53); font-weight: 400;">0</span>, EZ_CHUNK_X, EZ_CHUNK_Y );  </li><li>    neighbs += <span style="color: rgb(0, 224, 224); font-weight: 400;">EZ_GET_CELL</span>( EZX  , EZY+<span style="color: rgb(245, 171, 53); font-weight: 400;">1</span>, <span style="color: rgb(245, 171, 53); font-weight: 400;">0</span>, EZ_CHUNK_X, EZ_CHUNK_Y );</li><li></li><li>    var myState: <span style="color: rgb(245, 171, 53); font-weight: 400;">f32</span> = EZ_STATE_IN[ EZ_CELL_IND ];</li><li></li><li>    <span style="color: rgb(220, 198, 224); font-weight: 400;">if</span> (myState == <span style="color: rgb(245, 171, 53); font-weight: 400;">1</span> &amp;&amp; (neighbs &lt; <span style="color: rgb(245, 171, 53); font-weight: 400;">2</span> || neighbs &gt; <span style="color: rgb(245, 171, 53); font-weight: 400;">3</span>)) {</li><li>        EZ_STATE_OUT[ EZ_CELL_IND ] = <span style="color: rgb(245, 171, 53); font-weight: 400;">0.0</span>;</li><li>    }</li><li>    <span style="color: rgb(220, 198, 224); font-weight: 400;">else</span> <span style="color: rgb(220, 198, 224); font-weight: 400;">if</span> (myState == <span style="color: rgb(245, 171, 53); font-weight: 400;">0</span> &amp;&amp; neighbs == <span style="color: rgb(245, 171, 53); font-weight: 400;">3</span>) {</li><li>        EZ_STATE_OUT[ EZ_CELL_IND ] = <span style="color: rgb(245, 171, 53); font-weight: 400;">1.0</span>;</li><li>    }</li><li>    <span style="color: rgb(220, 198, 224); font-weight: 400;">else</span> {</li><li>        EZ_STATE_OUT[ EZ_CELL_IND ] = myState;</li><li>    }</li><li>`;</li><li></li><li><span style="color: rgb(220, 198, 224); font-weight: 400;">let</span> <span style="color: rgb(255, 160, 122); font-weight: 400;">fragmentWGSL</span> = </li><li>`</li><li>    var rrr: <span style="color: rgb(245, 171, 53); font-weight: 400;">f32</span> = <span style="color: rgb(245, 171, 53); font-weight: 400;">1</span>;</li><li>    var ggg: <span style="color: rgb(245, 171, 53); font-weight: 400;">f32</span> = <span style="color: rgb(245, 171, 53); font-weight: 400;">1</span>;</li><li>    var bbb: <span style="color: rgb(245, 171, 53); font-weight: 400;">f32</span> = <span style="color: rgb(245, 171, 53); font-weight: 400;">1</span>; </li><li></li><li>    <span style="color: rgb(220, 198, 224); font-weight: 400;">if</span>( cellState[ EZ_REBUILT_INSTANCE + (<span style="color: rgb(245, 171, 53); font-weight: 400;">0</span>) * <span style="color: rgb(0, 224, 224); font-weight: 400;">u32</span>(grid.x * grid.y) ] &lt; <span style="color: rgb(245, 171, 53); font-weight: 400;">1</span> ){</li><li>        rrr = <span style="color: rgb(245, 171, 53); font-weight: 400;">0</span>;</li><li>        ggg = <span style="color: rgb(245, 171, 53); font-weight: 400;">0</span>;</li><li>        bbb = <span style="color: rgb(245, 171, 53); font-weight: 400;">0</span>;</li><li>    }</li><li></li><li>    EZ_OUTPUT.red = rrr;</li><li>    EZ_OUTPUT.grn = ggg;</li><li>    EZ_OUTPUT.blu = bbb; </li><li>`;</li><li></li><li><span style="color: rgb(212, 208, 171); font-weight: 400;">// Usage example</span></li><li><span style="color: rgb(220, 198, 224); font-weight: 400;">let</span> <span style="color: rgb(255, 160, 122); font-weight: 400;">config</span> = {</li><li></li><li>    CELL_SIZE: <span style="color: rgb(245, 171, 53); font-weight: 400;">2</span>,</li><li>    CHUNK_SIZE: <span style="color: rgb(245, 171, 53); font-weight: 400;">256</span>,</li><li></li><li>    CONTAINER_ID:   <span style="color: rgb(171, 227, 56); font-weight: 400;">'demoCanvasContainer</span>',    <span style="color: rgb(212, 208, 171); font-weight: 400;">// DOM id to insdert canvas to</span></li><li>    RAND_SEED:      <span style="color: rgb(171, 227, 56); font-weight: 400;">'randomseed12345678910</span>', </li><li>    STARTING_CONFIG: EZWG.ALL_BINS,      <span style="color: rgb(212, 208, 171); font-weight: 400;">// couldve been EZWG.ALL_ZERO</span></li><li>    COMPUTE_WGSL: `</li><li>        <span style="color: rgb(212, 208, 171); font-weight: 400;">// The custom WGSL code goes here</span></li><li>        ${computeWGSL}</li><li>    `,</li><li></li><li>    FRAGMENT_WGSL: `</li><li>        <span style="color: rgb(212, 208, 171); font-weight: 400;">// The custom WGSL code goes here</span></li><li>        ${fragmentWGSL}</li><li>    `</li><li>};</li><li></li><li><span style="color: rgb(212, 208, 171); font-weight: 400;">// Intital set the default runner to this</span></li><li>EZ_EXAMPLE = new <span style="color: rgb(0, 224, 224); font-weight: 400;">EZWG</span>( config);</li></ol></pre>
+        </div>
+
+        <br>
+
+        <h2 style="color: rgb(198, 190, 36);">TODO:</h2>
+            <div class="todo-section">
+                <ul>
+                    <li> Add U32 buffer types (currently only F32) </li>
+                    <li> Ability to edit the shader compute pipeline </li>
+                    <li> Custom vertices (instead of just squares) </li>
+                    <li> UI grid editor </li>
+                    <li> Add more examples (send here: <a href="https://twitter.com/BonisDev">@BonisDev</a>) </li>
+            </ul>
+        </div>
+
+
+
         <!--Code-->
         <div class="code-editor-container">
-            <div class="editor-header">
+            <!-- <div class="editor-header">
                 <span>Code Editor</span>
                 <button id="copyButton">Copy to clipboard</button>
             </div>
             <div class="editor">
                 <div class="line-numbers" id="lineNumbers"></div>
                 <textarea id="codeEditor" spellcheck="false"></textarea>
-            </div>
+            </div> -->
 
         <p style="color: rgb(172, 31, 129);">How it works:</p>
         <div class="info-section">
@@ -890,7 +910,7 @@
                 // Usage example
                 let config = {
 
-                    CELL_VALS: 17,   // Now this means 17 f32 values per cell
+                    CELL_VALS: 8,   // Now this means 17 f32 values per cell
                     CELL_SIZE: 4,
                     CHUNK_SIZE: 32,
                     CHUNKS_ACROSS: 4,
@@ -950,12 +970,15 @@
                         // Implement CGOL rules for this value in memory
                         if (myState == 1 && (totalNghbrCount < 2 || totalNghbrCount > 3)) {
                             EZ_STATE_OUT[ EZ_CELL_IND + attributeOffset ] = 0.0;
+                            neighbrs[ valIndex ] = 0.0;
                         }
                         else if (myState == 0 && totalNghbrCount == 3) {
                             EZ_STATE_OUT[ EZ_CELL_IND + attributeOffset ] = 1.0;
+                            neighbrs[ valIndex ] = 1.0;
                         }
                         else {
                             EZ_STATE_OUT[ EZ_CELL_IND + attributeOffset ] = myState;
+                            neighbrs[ valIndex ] = myState;
                         }
                         
                         valIndex++;
@@ -970,9 +993,7 @@
                         if i_EZ_userInputCounter >= EZ_CELL_VALS { break; }
 
                         let EZ_lastInputToChange         = EZ_TOTAL_CELLS * i_EZ_userInputCounter + EZ_CELL_IND;  
-
-                        var nuVal: f32 = EZ_STATE_IN[EZ_lastInputToChange];
-
+ 
                         // Get the min max of the input coordinattres
                         var minX: u32 = min( u32(EZ_USER_INPUT[0]),  u32(EZ_USER_INPUT[2]));
                         var maxX: u32 = max( u32(EZ_USER_INPUT[0]),  u32(EZ_USER_INPUT[2]));
@@ -983,11 +1004,11 @@
                                 EZ_STATE_OUT[ EZ_lastInputToChange ] = 1; 
                             }
                             else{
-                                EZ_STATE_OUT[ EZ_lastInputToChange ] = nuVal; 
+                                EZ_STATE_OUT[ EZ_lastInputToChange ] = neighbrs[ i_EZ_userInputCounter ]; 
                             }
                         }
                         else{
-                            EZ_STATE_OUT[ EZ_lastInputToChange ] = nuVal; 
+                            EZ_STATE_OUT[ EZ_lastInputToChange ] = neighbrs[ i_EZ_userInputCounter ]; 
                         }
                         i_EZ_userInputCounter++;
                     } 
@@ -1056,7 +1077,7 @@
                 // Usage example
                 let config = {
 
-                    CELL_VALS: 17,   // Now this means 17 f32 values per cell
+                    CELL_VALS: 12,   // Now this means 17 f32 values per cell
                     CELL_SIZE: 4,
                     CHUNK_SIZE: 32,
                     CHUNKS_ACROSS: 4,

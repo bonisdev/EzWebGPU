@@ -131,11 +131,11 @@ class EZWG {
         // this.LAST_CELL_X = -1
         // this.LAST_CELL_Y = -1
 
+        this.liveInput = (new Array(7)).fill(0);
         this.ezweb = {
             isDragging: false,
             CELL_SIZE: this.CELL_SIZE,
             GRID_SIZE: this.GRID_SIZE,
-            liveInput: Array(7).fill(0),
             dragStartX: 0,
             dragStartY: 0,
             dragEndX: 0,
@@ -1069,20 +1069,20 @@ class EZWG {
             this.ezweb.dragEndX = Math.floor(xx / this.ezweb.CELL_SIZE);
             this.ezweb.dragEndY = Math.floor(yy / this.ezweb.CELL_SIZE);
 
-            if (this.ezweb.liveInput[6] < 1) {
-                this.ezweb.liveInput[0] = this.ezweb.dragStartX;
-                this.ezweb.liveInput[1] = (this.ezweb.GRID_SIZE - 1) - this.ezweb.dragStartY;
-                this.ezweb.liveInput[2] = this.ezweb.dragEndX;
-                this.ezweb.liveInput[3] = (this.ezweb.GRID_SIZE - 1) - this.ezweb.dragEndY;
-                this.ezweb.liveInput[4] = 1;
-                this.ezweb.liveInput[5] = 0;
-                this.ezweb.liveInput[6] = 1;
+            if (this.liveInput[6] < 1) {
+                this.liveInput[0] = this.ezweb.dragStartX;
+                this.liveInput[1] = (this.ezweb.GRID_SIZE - 1) - this.ezweb.dragStartY;
+                this.liveInput[2] = this.ezweb.dragEndX;
+                this.liveInput[3] = (this.ezweb.GRID_SIZE - 1) - this.ezweb.dragEndY;
+                this.liveInput[4] = 1;
+                this.liveInput[5] = 0;
+                this.liveInput[6] = 1;
 
                 this.ezweb.LAST_CELL_X = this.ezweb.dragStartX;
                 this.ezweb.LAST_CELL_Y = this.ezweb.dragStartY;
 
             }
-            console.log(this.ezweb.liveInput);
+            console.log(this.liveInput);
         }
     }
 
