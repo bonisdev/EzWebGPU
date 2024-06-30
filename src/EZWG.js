@@ -34,7 +34,8 @@ class EZWG {
             COMPUTE_WGSL: '',
             FRAGMENT_WGSL: '',
             READ_BACK_FUNC: ( currentStep, entireBuffer ) => {},
-            CELL_SIZE: 8
+            CELL_SIZE: 8,
+            STORAGE: (new Float32Array(1))
         };
  
         // Merge defaults with the provided config
@@ -54,10 +55,36 @@ class EZWG {
         this.FRAGMENT_WGSL = this._validateString(this.config.FRAGMENT_WGSL, 'FRAGMENT_WGSL');
         this.READ_BACK_FUNC = this.config.READ_BACK_FUNC;
         this.CELL_SIZE = this._validatePositiveInteger(this.config.CELL_SIZE, 'CELL_SIZE');
-
-
-        this.RAND = new PseudRand( this.RAND_SEED );
-
+        this.STORAGE = this.config.STORAGE;//this._validateArray(this.BUFFER_DATA_TYPE, this.config.STORAGE, 'STORAGE');
+        //this.STORAGE_SIZE = this._validatePositiveInteger(this.config.STORAGE_SIZE, 'STORAGE_SIZE');
+ 
+        // if(this.STORAGE.length < 2){
+        //     this.STORAGE; 
+        //     if( this.BUFFER_DATA_TYPE === 'f32' ){
+        //         this.STORAGE = new Float32Array( this.STORAGE_SIZE)
+        //         if( this.STARTING_CONFIG === EZWG.ALL_RANDS){
+        //             this.initTheInitialCellStateAllRand( this.cellStateArray, this.RAND_SEED, this.GRID_SIZE );
+        //         }
+        //         else if( this.STARTING_CONFIG === EZWG.ALL_BINS){
+        //             this.initTheInitialCellStateAllRandBins( this.cellStateArray, this.RAND_SEED, this.GRID_SIZE );
+        //         }
+        //         else{//if( this.STARTING_CONFIG === EZWG.ALL_ZERO){
+        //             this.initTheInitialCellStateAllZeros( this.cellStateArray, this.RAND_SEED, this.GRID_SIZE );
+        //         }
+        //     }
+        //     // U32 disabled for now but we gotta get back to this
+        //     else if( this.BUFFER_DATA_TYPE === 'u32' && false){
+        //         this.STORAGE = new Uint32Array( this.STORAGE_SIZE );//[1.0, 1.0, 1.0, 1.0 ]); 
+        //     } 
+        //     for(let v = 0;v < this.STORAGE.length;v++){ 
+        //         if(v < this.STORAGE_SIZE ) {
+        //             this.STORAGE[v] = this.random();
+        //         }
+        //         else if(true){
+        //             this.STORAGE[v] = this.random();
+        //         }
+        //     }
+        // }
 
 
         // Game time specific variables
@@ -67,13 +94,12 @@ class EZWG {
         this.UPDATE_INTERVAL = 50
         this.WORKGROUP_SIZE = 8
 
-        this.USER_INPUT_BUFFER_SIZE = 8*8
-		this.EXTRA_CONFIG_STORAGE_SIZE = 250;//445111;//67000;//128*128;//100000;//512*512;
+        this.USER_INPUT_BUFFER_SIZE = 8*8 
 
         this.loaded = false;
         this.READ_BUFFER_BUSY = false;
         this.step = 0;
-        this.flaggedForDeath = false;
+        this.suicide = false;
 
         this.canvas = null;
         this.context = null
@@ -108,6 +134,8 @@ class EZWG {
     }
 
     killdeath(){
+
+        this.suicide = true;
         
         if (this.device) {
             this.vertexBuffer?.destroy();
@@ -159,6 +187,20 @@ class EZWG {
     _validateString(value, propertyName) {
         if (typeof value !== 'string' ) {
             throw new Error(`${propertyName} must be a non-empty string`);
+        }
+        return value;
+    }
+    // Method to validate array
+    _validateArray(bufrtype, value, propertyName) {
+        if( bufrtype === 'f32'){
+            if ( value instanceof Float32Array ) {
+                throw new Error(`${propertyName} must be an array of f32 val`);
+            }
+        }
+        else if( bufrtype === 'u32' ){
+            if ( value instanceof Uint32Array ) {
+                throw new Error(`${propertyName} must be an array of u32 val`);
+            }
         }
         return value;
     }
@@ -402,7 +444,7 @@ class EZWG {
 
 			@group(0) @binding(0) var<uniform> grid: vec2f;
 			@group(0) @binding(1) var<storage> cellState: array<f32>; 
-			@group(0) @binding(4) var<storage> EZ_EXTRA_VALS: array<f32>;
+			@group(0) @binding(4) var<storage> EZ_STORAGE: array<f32>;
 
 			@vertex
 			fn vertexMain(@location(0) position: vec2f, @builtin(instance_index) EZ_INSTANCE: u32) -> VertexOutput {
@@ -414,10 +456,9 @@ class EZWG {
                 let caWu: u32 = `+this.PARTS_ACROSS+`u;
 
                 let EZ_CHUNK_SIZE: u32 = `+this.CHUNK_SIZE+`u;
-
-                
                 let EZ_CELLS_ACROSS_X: u32 = u32( grid.x );
                 let EZ_CELLS_ACROSS_Y: u32 = u32( grid.y );
+                let EZ_TOTAL_CELLS = EZ_CELLS_ACROSS_X * EZ_CELLS_ACROSS_Y;
 
                 // Global grid counting each component as a cell
                 var EZ_RAW_COL: u32 = EZ_INSTANCE % (EZ_CELLS_ACROSS_X * caWu);
@@ -446,7 +487,7 @@ class EZWG {
 				EZ_OUTPUT.cell = EZ_CELL / (grid*1);
 				
                 //--------------------------------------------------------- Newly added to sort
-                const EZ_ALL_VALS: u32 = `+this.CELL_VALS+`u; 
+                const EZ_CELL_VALS: u32 = `+this.CELL_VALS+`u; 
                 const CHUNK_SIZE: u32 = `+this.CHUNK_SIZE+`u;
                 const CHUNKS_ACROSS: u32 = `+this.CHUNKS_ACROSS+`u;
 
@@ -523,7 +564,7 @@ class EZWG {
 			@group(0) @binding(1) var<storage> EZ_STATE_IN: array<f32>;
 			@group(0) @binding(2) var<storage, read_write> EZ_STATE_OUT: array<f32>;
 			@group(0) @binding(3) var<storage, read_write> EZ_USER_INPUT: array<f32>;
-			@group(0) @binding(4) var<storage> EZ_EXTRA_VALS: array<f32>;
+			@group(0) @binding(4) var<storage> EZ_STORAGE: array<f32>;
 
 			fn EZ_helper_cellIndex(cell: vec2u) -> u32 {
 				return ((cell.y+u32(grid.y)) % u32(grid.y)) * u32(grid.x) + ((cell.x+u32(grid.x)) % u32(grid.x));
@@ -545,7 +586,7 @@ class EZWG {
                 let EZ_CELLS_ACROSS_X: u32 = u32( grid.x );
                 let EZ_CELLS_ACROSS_Y: u32 = u32( grid.y );
                 let EZ_TOTAL_CELLS = EZ_CELLS_ACROSS_X * EZ_CELLS_ACROSS_Y;
- 
+  
                 const EZ_CELL_VALS: u32  = `+this.CELL_VALS+`u;
                 const EZ_CHUNK_SIZE: u32 = `+this.CHUNK_SIZE+`u;
                 const EZ_CHUNKS_ACROSS: u32 = `+this.CHUNKS_ACROSS+`u; 
@@ -690,37 +731,15 @@ class EZWG {
 
 
 
-
-        //64x64 must be >
-		//38x38 joos types + 38 decay vals + 38 squirt vals
-		const extraConfigValStorage = new Float32Array( this.EXTRA_CONFIG_STORAGE_SIZE   );//[1.0, 1.0, 1.0, 1.0 ]);
-
-        // NOTE::: allocation
-        // If there are juices; (39)
-        // 128x128      16,384  
-        // wghts     wghts     sqrtVal    decayVal      drawWghts
-        // 39x39     39x39     1x39       1x39          3(rgb)x39
-
-        let spind = 0; 
-		var randForWghts = new PseudRand( 'board' + this.RAND_SEED  );
-		for(let v = 0;v < extraConfigValStorage.length;v++){
-
-            if(v < this.EXTRA_CONFIG_STORAGE_SIZE ) {
-                extraConfigValStorage[v] = randForWghts.random();
-            }
-            else if(true){
-                extraConfigValStorage[v] = randForWghts.random();
-                // extraConfigValStorage[v] = sprites[spind]
-                // spind++;
-            }
-        }
+        // console.log(this.STORAGE)
+        
 		const extraConfigStorage = 
 			this.device.createBuffer({
 				label: "Extra config sotrage",
-				size: extraConfigValStorage.byteLength,
+				size: this.STORAGE.byteLength,
 				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 			});
-		this.device.queue.writeBuffer( extraConfigStorage, 0, extraConfigValStorage );
+		this.device.queue.writeBuffer( extraConfigStorage, 0, this.STORAGE );
 
 
         
@@ -1018,25 +1037,25 @@ class EZWG {
     }
     initTheInitialCellStateAllRand( cellStateArray, seeed, grid_size ){
         let nuSeed = 'insI2' + seeed;
-        let rand = new PseudRand( nuSeed );
+        //let rand = new PseudRand( nuSeed );
         let daBigONe = this.CHUNKS_ACROSS * this.CHUNKS_ACROSS * this.CHUNK_SIZE * this.CHUNK_SIZE
         for(let ii = 0;ii < daBigONe;ii++){ 
             for(let c = 0;c < this.CELL_VALS;c++){
                 cellStateArray[
                     ii + c*(grid_size*grid_size)
-                ] =  rand.random();
+                ] =  EZWG.SHA1.random();
             } 
         }
     }
     initTheInitialCellStateAllRandBins( cellStateArray, seeed, grid_size ){
         let nuSeed = 'insI2' + seeed;
-        let rand = new PseudRand( nuSeed );
+        //let rand = new PseudRand( nuSeed );
         let daBigONe = this.CHUNKS_ACROSS * this.CHUNKS_ACROSS * this.CHUNK_SIZE * this.CHUNK_SIZE
         for(let ii = 0;ii < daBigONe;ii++){
             for(let c = 0;c < this.CELL_VALS;c++){
                 cellStateArray[
                     ii + c*(grid_size*grid_size)
-                ] =  rand.random()<0.5?0:1;
+                ] =  EZWG.SHA1.random()<0.5?0:1;
             } 
         }
     }
@@ -1097,6 +1116,189 @@ class EZWG {
             }
 
         }
+    }
+ 
+    static SHA1 = {
+        state: {
+            lastseed: '',
+            tot: 0
+        },
+        hashToFloat(hash) {
+            const hexPart = hash.substring(0, 16);
+            const intVal = parseInt(hexPart, 16);
+            const maxInt = Math.pow(2, 64) - 1;
+            return intVal / maxInt;
+        },
+        
+        seed(setseed){
+            this.state.lastseed = ''+setseed;
+        },
+        random(){
+            this.state.lastseed = this.sha1(this.state.lastseed)
+            this.state.tot++;
+            return this.hashToFloat(this.state.lastseed)
+        },
+        sha1(msg) {
+            function rotateLeft(n, s) {
+                return (n << s) | (n >>> (32 - s));
+            }
+        
+            function toHexStr(n) {
+                let s = "", v;
+                for (let i = 7; i >= 0; i--) {
+                    v = (n >>> (i * 4)) & 0x0f;
+                    s += v.toString(16);
+                }
+                return s;
+            }
+        
+            function utf8Encode(str) {
+                return unescape(encodeURIComponent(str));
+            }
+        
+            const K = [0x5a827999, 0x6ed9eba1, 0x8f1bbcdc, 0xca62c1d6];
+        
+            msg = utf8Encode(msg);
+        
+            const msgLength = msg.length;
+        
+            let wordArray = [];
+            for (let i = 0; i < msgLength - 3; i += 4) {
+                wordArray.push((msg.charCodeAt(i) << 24) | (msg.charCodeAt(i + 1) << 16) | (msg.charCodeAt(i + 2) << 8) | msg.charCodeAt(i + 3));
+            }
+        
+            switch (msgLength % 4) {
+                case 0:
+                    wordArray.push(0x080000000);
+                    break;
+                case 1:
+                    wordArray.push((msg.charCodeAt(msgLength - 1) << 24) | 0x0800000);
+                    break;
+                case 2:
+                    wordArray.push((msg.charCodeAt(msgLength - 2) << 24) | (msg.charCodeAt(msgLength - 1) << 16) | 0x08000);
+                    break;
+                case 3:
+                    wordArray.push((msg.charCodeAt(msgLength - 3) << 24) | (msg.charCodeAt(msgLength - 2) << 16) | (msg.charCodeAt(msgLength - 1) << 8) | 0x80);
+                    break;
+            }
+        
+            while ((wordArray.length % 16) != 14) {
+                wordArray.push(0);
+            }
+        
+            wordArray.push(msgLength >>> 29);
+            wordArray.push((msgLength << 3) & 0x0ffffffff);
+        
+            let H0 = 0x67452301;
+            let H1 = 0xefcdab89;
+            let H2 = 0x98badcfe;
+            let H3 = 0x10325476;
+            let H4 = 0xc3d2e1f0;
+        
+            let W = new Array(80);
+            let a, b, c, d, e;
+            for (let i = 0; i < wordArray.length; i += 16) {
+                for (let t = 0; t < 16; t++) {
+                    W[t] = wordArray[i + t];
+                }
+                for (let t = 16; t < 80; t++) {
+                    W[t] = rotateLeft(W[t - 3] ^ W[t - 8] ^ W[t - 14] ^ W[t - 16], 1);
+                }
+        
+                a = H0;
+                b = H1;
+                c = H2;
+                d = H3;
+                e = H4;
+        
+                for (let t = 0; t < 80; t++) {
+                    let temp;
+                    if (t < 20) {
+                        temp = (rotateLeft(a, 5) + ((b & c) | (~b & d)) + e + W[t] + K[0]) & 0x0ffffffff;
+                    } else if (t < 40) {
+                        temp = (rotateLeft(a, 5) + (b ^ c ^ d) + e + W[t] + K[1]) & 0x0ffffffff;
+                    } else if (t < 60) {
+                        temp = (rotateLeft(a, 5) + ((b & c) | (b & d) | (c & d)) + e + W[t] + K[2]) & 0x0ffffffff;
+                    } else {
+                        temp = (rotateLeft(a, 5) + (b ^ c ^ d) + e + W[t] + K[3]) & 0x0ffffffff;
+                    }
+        
+                    e = d;
+                    d = c;
+                    c = rotateLeft(b, 30);
+                    b = a;
+                    a = temp;
+                }
+        
+                H0 = (H0 + a) & 0x0ffffffff;
+                H1 = (H1 + b) & 0x0ffffffff;
+                H2 = (H2 + c) & 0x0ffffffff;
+                H3 = (H3 + d) & 0x0ffffffff;
+                H4 = (H4 + e) & 0x0ffffffff;
+            }
+        
+            return toHexStr(H0) + toHexStr(H1) + toHexStr(H2) + toHexStr(H3) + toHexStr(H4);
+        }
+    }
+
+    static print = {
+        goThroughF32ValsAndReprint( f32CopiedValues, ca_obj ){
+
+            let lstCellX = -1;
+            let lstCellY = -1;
+
+            let chunk_att_size = ca_obj.TOTAL_CHUNKS * ca_obj.TOTAL_CHUNKS * ca_obj.CHUNK_SIZE * ca_obj.CHUNK_SIZE; 
+            let offX = 26;// x coordinate RELATIVE TO EACH CHUNK
+            let offY = 44;// y coor... 
+            for(let ii = 0;ii < ca_obj.TOTAL_CHUNKS;ii++){
+                for(let jj = 0;jj < ca_obj.TOTAL_CHUNKS;jj++){ 
+                    let theX = Math.floor(ii) + offX;
+                    let theY = Math.floor(jj) + offY; 
+                    let c = 16;
+                    //for(c = ca_obj.joosValuesPerCell;c < ca_obj.uniqueValuesPerCell;c++){
+                    //}
+                    for(c = 0;c < ca_obj.uniqueValuesPerCell;c++){
+                        let hgh = f32CopiedValues[
+                            (theX) + (theY * ca_obj.CHUNK_SIZE*ca_obj.TOTAL_CHUNKS) + (c*chunk_att_size)
+                        ]; 
+                        //console.log( ':-:-:-:-', ii, jj, hgh ); 
+                    } 
+                    //console.log( '---===============;' );
+                }
+            }
+
+            if(lstCellX > -1 && lstCellY > -1){
+                for(let c = 0;c < ca_obj.uniqueValuesPerCell;c++){
+                    let hgh = f32CopiedValues[
+                        (lstCellX) + 
+                        (lstCellY * ca_obj.CHUNK_SIZE*ca_obj.TOTAL_CHUNKS) + 
+                        (c*chunk_att_size)
+                    ]; 
+                    let wrpX = lstCellX % (ca_obj.CHUNK_SIZE);
+                    let wrpY = lstCellY % (ca_obj.CHUNK_SIZE);
+                    //console.log( wrpX, wrpY, hgh ); 
+                }
+
+            }
+
+            
+
+            // console.log('neghbrs:--_____');//ca_obj.joosValuesPerCell
+            // for(let c = 0;c < ca_obj.uniqueValuesPerCell;c++){ 
+            //     let theX = Math.floor(32); // + offX;
+            //     let theY = Math.floor(44); // + offY; 
+            //     let hgh = f32CopiedValues[
+            //         (theX) + (theY*ca_obj.CHUNK_SIZE*ca_obj.TOTAL_CHUNKS) + (c*chunk_att_size)
+            //     ]; 
+            //     theX = theX % ca_obj.CHUNK_SIZE;
+            //     theY = theY % ca_obj.CHUNK_SIZE;
+            //     console.log( theX, theY, hgh);
+            // }
+                    
+
+            //f32CopiedValues
+
+        } 
     }
  
 } 

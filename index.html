@@ -201,7 +201,7 @@
 	<link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
 	<title>EzWebGPU.js</title>
 
-    <script src="src/PseudRand.js"></script>
+    <!-- <script src="src/PseudRand.js"></script> -->
     <script src="src/EZWG.js"></script>
 </head>
 
@@ -595,12 +595,254 @@
                 // Intital set the default runner to this
                 EZ_EXAMPLE = new EZWG( config);
             },
+        // 4 (FOUR) - Random Colour Game of Life (QUADRANTS + COMPONENTS + FADING core)
+            // + residual cool down 
+            () => {
+                let computeWGSL = 
+                `
+                    var neighbs: f32 = 0;
+                    neighbs += EZ_GET_CELL(EZX+1, EZY+1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );      
+                    neighbs += EZ_GET_CELL(EZX+1, EZY  , 0, EZ_CHUNK_X, EZ_CHUNK_Y );      
+                    neighbs += EZ_GET_CELL(EZX+1, EZY-1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );     
+                    neighbs += EZ_GET_CELL(EZX  , EZY-1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );    
+                    neighbs += EZ_GET_CELL(EZX-1, EZY-1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );   
+                    neighbs += EZ_GET_CELL(EZX-1, EZY  , 0, EZ_CHUNK_X, EZ_CHUNK_Y );     
+                    neighbs += EZ_GET_CELL(EZX-1, EZY+1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );  
+                    neighbs += EZ_GET_CELL(EZX  , EZY+1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );       
+
+                    var myState: f32 = EZ_STATE_IN[ EZ_CELL_IND ];
+
+                    if (myState == 1 && (neighbs < 2 || neighbs > 3)) {
+                        EZ_STATE_OUT[ EZ_CELL_IND ] = 0.0;
+                    }
+                    else if (myState == 0 && neighbs == 3) {
+                        EZ_STATE_OUT[ EZ_CELL_IND ] = 1.0;
+                    }
+
+                    else {
+
+                        EZ_STATE_OUT[ EZ_CELL_IND ] = myState;
+                    }
+                `;
+
+                let fragmentWGSL = 
+                `
+                    var rrr: f32 = 1;
+                    var ggg: f32 = 1;
+                    var bbb: f32 = 0;
+
+                    var cellVal: f32 = cellState[ EZ_REBUILT_INSTANCE + (0) * u32(grid.x * grid.y) ];
+
+                    var drawingWeightsOffset: u32 = EZ_CHUNK_IND * 3u; // 3 storage values for r,g,b
+
+                    if( cellVal < 1 ){
+                        rrr = 0;
+                        ggg = 0;
+                        bbb = 0;
+                    }
+                    else{
+
+                        rrr = EZ_STORAGE[ drawingWeightsOffset + 0 ];
+                        ggg = EZ_STORAGE[ drawingWeightsOffset + 1 ];
+                        bbb = EZ_STORAGE[ drawingWeightsOffset + 2 ];
+                        
+                    }
+
+                    EZ_OUTPUT.red = rrr;
+                    EZ_OUTPUT.grn = ggg;
+                    EZ_OUTPUT.blu = bbb; 
+                `;
+
+                // An Extra buffer of random f32's 0-1 to get a variety of colours
+                let randomConwayRGBs = new Float32Array( 256 );
+                EZWG.SHA1.seed('test seed 1234' + Date.now());
+                for(let b = 0;b < randomConwayRGBs.length;b++){ 
+                    
+                    randomConwayRGBs[b] = EZWG.SHA1.random()
+                }
+                console.log(randomConwayRGBs)
+
+                // Usage example
+                let config = {
+
+                    CELL_SIZE: 5,
+                    CHUNK_SIZE: 32,
+                    CHUNKS_ACROSS: 3,
+                    PARTS_ACROSS: 5,
+
+                    CONTAINER_ID:   'demoCanvasContainer',    // DOM id to insdert canvas to
+                    RAND_SEED:      'randomseed12345678910', 
+                    STARTING_CONFIG: EZWG.ALL_BINS,      // couldve been EZWG.ALL_ZERO
+                    COMPUTE_WGSL: `
+                        // The custom WGSL code goes here
+                        ${computeWGSL}
+                    `,
+
+                    FRAGMENT_WGSL: `
+                        // The custom WGSL code goes here
+                        ${fragmentWGSL}
+                    `,
+
+                    STORAGE: randomConwayRGBs
+
+                };
+
+                // Intital set the default runner to this
+                EZ_EXAMPLE = new EZWG( config);
+            },
+        // 5 (FIVE) - Random Colour Multi-Conway Game of Life (QUADRANTS)
+            // + residual cool down 
+            () => {
+                let computeWGSL = 
+                `
+
+                    // Helper variables for readability later on
+                    var attributeOffset: u32 = 0;
+                    var myState: f32 = 0;
+                    var totalNghbrCount: u32 = 0;
+
+                    // Loop through each value in the cell, and store their CGOL state value
+                    var neighbrs: array< f32, EZ_CELL_VALS >;
+                    var valIndex: u32 = 0;
+                    loop {
+                        if valIndex >= EZ_CELL_VALS { break; }
+                        
+                        neighbrs[ valIndex ] = 0f;
+                        attributeOffset = valIndex*EZ_TOTAL_CELLS;
+
+                        neighbrs[ valIndex ] += EZ_GET_CELL( EZX+1, EZY+1, valIndex, EZ_CHUNK_X, EZ_CHUNK_Y );      
+                        neighbrs[ valIndex ] += EZ_GET_CELL( EZX+1, EZY  , valIndex, EZ_CHUNK_X, EZ_CHUNK_Y );      
+                        neighbrs[ valIndex ] += EZ_GET_CELL( EZX+1, EZY-1, valIndex, EZ_CHUNK_X, EZ_CHUNK_Y );     
+                        neighbrs[ valIndex ] += EZ_GET_CELL( EZX  , EZY-1, valIndex, EZ_CHUNK_X, EZ_CHUNK_Y );    
+                        neighbrs[ valIndex ] += EZ_GET_CELL( EZX-1, EZY-1, valIndex, EZ_CHUNK_X, EZ_CHUNK_Y );   
+                        neighbrs[ valIndex ] += EZ_GET_CELL( EZX-1, EZY  , valIndex, EZ_CHUNK_X, EZ_CHUNK_Y );     
+                        neighbrs[ valIndex ] += EZ_GET_CELL( EZX-1, EZY+1, valIndex, EZ_CHUNK_X, EZ_CHUNK_Y );  
+                        neighbrs[ valIndex ] += EZ_GET_CELL( EZX  , EZY+1, valIndex, EZ_CHUNK_X, EZ_CHUNK_Y );
+
+                        myState = EZ_STATE_IN[ EZ_CELL_IND + attributeOffset ];
+                        totalNghbrCount = u32(neighbrs[ valIndex ]);
+
+                        // Implement CGOL rules for this value in memory
+                        if (myState == 1 && (totalNghbrCount < 2 || totalNghbrCount > 3)) {
+                            EZ_STATE_OUT[ EZ_CELL_IND + attributeOffset ] = 0.0;
+                        }
+                        else if (myState == 0 && totalNghbrCount == 3) {
+                            EZ_STATE_OUT[ EZ_CELL_IND + attributeOffset ] = 1.0;
+                        }
+                        else {
+                            EZ_STATE_OUT[ EZ_CELL_IND + attributeOffset ] = myState;
+                        }
+                        
+                        valIndex++;
+                    }  
+
+
+                    
+                `;
+
+                let fragmentWGSL = 
+                `
+                    var rrr: f32 = 0;
+                    var ggg: f32 = 0;
+                    var bbb: f32 = 0;
+
+
+                    // Helper variables for readiblity
+                    var drawingWeightsOffset: u32 = 0;
+                    var cellVal: f32 = 0;
+                    var totalTypesLive: u32 = EZ_CELL_VALS;
+                    
+                    var valIndex: u32 = 0;  //< - the attribute index in a cell
+                    loop {
+                        if valIndex >= EZ_CELL_VALS { break; }
+
+                        // shift read location in storage buffer: 3 storage values for r,g,b
+                        drawingWeightsOffset = EZ_CHUNK_IND * 3u;
+                        // and also shift down the location to accomodate the multiple values per cell  
+                        drawingWeightsOffset = drawingWeightsOffset + (EZ_CELL_VALS * 3u) * valIndex;
+
+                        // Get the value
+                        cellVal = cellState[ EZ_REBUILT_INSTANCE + valIndex * EZ_TOTAL_CELLS ];
+                        if( cellVal < 1 ){
+                            totalTypesLive = totalTypesLive - 1;
+                        }
+                        else{ 
+                            rrr += EZ_STORAGE[ drawingWeightsOffset + 0 ];
+                            ggg += EZ_STORAGE[ drawingWeightsOffset + 1 ];
+                            bbb += EZ_STORAGE[ drawingWeightsOffset + 2 ]; 
+                        }
+
+
+                        valIndex++;
+
+                    }
+
+                    if( totalTypesLive < 1 ){
+                        rrr = 0;
+                        ggg = 0;
+                        bbb = 0;
+                    }
+                    else{
+                        rrr = rrr / f32(totalTypesLive);
+                        ggg = ggg / f32(totalTypesLive);
+                        bbb = bbb / f32(totalTypesLive);
+                    }
+
+
+                    
+
+                    
+
+                    EZ_OUTPUT.red = rrr;
+                    EZ_OUTPUT.grn = ggg;
+                    EZ_OUTPUT.blu = bbb;
+                `;
+
+                // An Extra buffer of random f32's 0-1 to get a variety of colours
+                let randomConwayRGBs = new Float32Array( 4096 );
+                EZWG.SHA1.seed('test seed 1234' + Date.now());
+                for(let b = 0;b < randomConwayRGBs.length;b++){ 
+                    
+                    randomConwayRGBs[b] = EZWG.SHA1.random()
+                }
+                console.log(randomConwayRGBs)
+
+                // Usage example
+                let config = {
+
+                    CELL_VALS: 12,   // Now this means 3 f32 values per cell
+                    CELL_SIZE: 5,
+                    CHUNK_SIZE: 32,
+                    CHUNKS_ACROSS: 3,
+                    PARTS_ACROSS: 1,
+
+                    CONTAINER_ID:   'demoCanvasContainer',    // DOM id to insdert canvas to
+                    RAND_SEED:      'randomseed12345678910', 
+                    STARTING_CONFIG: EZWG.ALL_BINS,      // couldve been EZWG.ALL_ZERO
+                    COMPUTE_WGSL: `
+                        // The custom WGSL code goes here
+                        ${computeWGSL}
+                    `,
+
+                    FRAGMENT_WGSL: `
+                        // The custom WGSL code goes here
+                        ${fragmentWGSL}
+                    `,
+
+                    STORAGE: randomConwayRGBs
+
+                };
+
+                // Intital set the default runner to this
+                EZ_EXAMPLE = new EZWG( config);
+            },
             
         ];
         
 
         function loadExample( exampleIndex ){
 
+            clearExample();
             // Initial load the first one
             ALL_EXAMPLES[exampleIndex]();
 
@@ -617,7 +859,7 @@
             }
             if( EZ_EXAMPLE ){
                 EZ_EXAMPLE.flaggedForDeath = true;
-                //EZ_EXAMPLE.killdeath()
+                EZ_EXAMPLE.killdeath()
             }
         } 
         function startExampleLoop(){
@@ -633,7 +875,7 @@
 
 
         clearExample();
-        loadExample(2)
+        loadExample(4)
 
 
     </script>
