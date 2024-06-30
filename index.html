@@ -232,20 +232,24 @@
         <h2 style="color: rgb(198, 190, 36);">TODO:</h2>
         <div class="todo-section">
             <ul>
-                <li> Add U32 buffer types (currently only F32)</li>
-                <li> Ability to edit the shader compute pipeline</li>
+                <li> Add U32 buffer types (currently only F32) </li>
+                <li> Ability to edit the shader compute pipeline </li>
                 <li> Custom vertices (instead of just squares) </li>
                 <li> UI grid editor </li>
-                <li> Add more examples (send here: <a href="https://twitter.com/BonisDev">@BonisDev</a>)</li>
+                <li> Add more examples (send here: <a href="https://twitter.com/BonisDev">@BonisDev</a>) </li>
             </ul>
         </div>
 
 		<p>Examples (<a href="https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API#browser_compatibility">Must have chrome</a>):</p>
         <div class="dropdown">
             <select id="dropdown" onchange="handleSelectChange(this.value)">
-                <option value="0">Conways Game of Life</option>
+                <option value="0">Standard CGOL</option>
                 <option value="1">Quadrant CGOL</option>
-                <option value="2">Gradual </option>
+                <option value="2">Multi-Part Renderer</option>
+                <option value="3">Storage Buffer</option>
+                <option value="4">GPU Buffer Readback</option>
+                <option value="5">Multi-Value CGOL</option>
+                <option value="6">Mouse Input</option>
             </select>
         </div>
         <br>
@@ -253,6 +257,7 @@
         
         <div id="demoCanvasContainer"></div>
         <br>
+        <div id="extraTitle"></div>
 
         <!--Code-->
         <div class="code-editor-container">
@@ -268,7 +273,7 @@
         <p style="color: rgb(172, 31, 129);">How it works:</p>
         <div class="info-section">
             <ul>
-                <li>  Some kind of diagram</li> 
+                <li>Some kind of diagram</li> 
             </ul>
         </div>
     
@@ -533,33 +538,19 @@
                     }
                     else{
 
-                        if( EZ_COMP_Y == 4 && EZ_COMP_X == 3 ){
-                            rrr = 0.4;
-                            ggg = 0.3;
-                            bbb = 0.4;
-                        }
-                        else{
-                            if(EZ_CHUNK_X == 0 && EZ_CHUNK_Y == 0 ){
-                                rrr = 1;
-                                ggg = 0;
-                                bbb = 0;
-                            }
-                            else if(EZ_CHUNK_X == 1 && EZ_CHUNK_Y == 0 ){
-                                rrr = 0;
-                                ggg = 1;
-                                bbb = 0;
-                            }
-                            else if(EZ_CHUNK_X == 0 && EZ_CHUNK_Y == 1 ){
-                                rrr = 0;
-                                ggg = 0;
-                                bbb = 1;
-                            }
-                            else if(EZ_CHUNK_X == 1 && EZ_CHUNK_Y == 1 ){
-                                rrr = 1;
-                                ggg = 1;
-                                bbb = 0;
-                            }
-                        }
+                        // Calc distance 
+                        var distFromCenter: f32 = abs( EZ_PARTS_ACROSS_F/2f - f32(EZ_COMP_X) );
+                        distFromCenter = abs( distFromCenter + ((EZ_PARTS_ACROSS_F/2f)-f32(EZ_COMP_Y)) ) ;
+                        distFromCenter = distFromCenter / ( EZ_PARTS_ACROSS_F );
+
+                        let offR = 0.44 + (f32(EZ_CHUNK_X) * 0.913 + f32(EZ_CHUNK_Y) * 0.7121) % 1;
+                        let offG = 0.78 + (f32(EZ_CHUNK_X) * 0.513 + f32(EZ_CHUNK_Y) * 0.8121) % 1;
+                        let offB = 0.41 + (f32(EZ_CHUNK_X) * 0.693 + f32(EZ_CHUNK_Y) * 0.4121) % 1;
+
+                        rrr = offR * (1f - distFromCenter);
+                        ggg = offG * (1f - distFromCenter);
+                        bbb = offB * (1f - distFromCenter);
+                        
 
                         
                     }
@@ -572,10 +563,10 @@
                 // Usage example
                 let config = {
 
-                    CELL_SIZE: 5,
+                    CELL_SIZE: 8,
                     CHUNK_SIZE: 32,
-                    CHUNKS_ACROSS: 3,
-                    PARTS_ACROSS: 5,
+                    CHUNKS_ACROSS: 2,
+                    PARTS_ACROSS: 8,
 
                     CONTAINER_ID:   'demoCanvasContainer',    // DOM id to insdert canvas to
                     RAND_SEED:      'randomseed12345678910', 
@@ -690,8 +681,108 @@
                 // Intital set the default runner to this
                 EZ_EXAMPLE = new EZWG( config);
             },
-        // 5 (FIVE) - Random Colour Multi-Conway Game of Life (QUADRANTS)
-            // + residual cool down 
+        // 5 (FIVE) - Read Back multi val
+            // + residual cool down  
+            () => {
+                let computeWGSL = 
+                `
+                    var neighbs: f32 = 0;
+                    neighbs += EZ_GET_CELL(EZX+1, EZY+1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );      
+                    neighbs += EZ_GET_CELL(EZX+1, EZY  , 0, EZ_CHUNK_X, EZ_CHUNK_Y );      
+                    neighbs += EZ_GET_CELL(EZX+1, EZY-1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );     
+                    neighbs += EZ_GET_CELL(EZX  , EZY-1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );    
+                    neighbs += EZ_GET_CELL(EZX-1, EZY-1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );   
+                    neighbs += EZ_GET_CELL(EZX-1, EZY  , 0, EZ_CHUNK_X, EZ_CHUNK_Y );     
+                    neighbs += EZ_GET_CELL(EZX-1, EZY+1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );  
+                    neighbs += EZ_GET_CELL(EZX  , EZY+1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );       
+
+                    var myState: f32 = EZ_STATE_IN[ EZ_CELL_IND ];
+
+                    if (myState == 1 && (neighbs < 2 || neighbs > 3)) {
+                        EZ_STATE_OUT[ EZ_CELL_IND ] = 0.0;
+                    }
+                    else if (myState == 0 && neighbs == 3) {
+                        EZ_STATE_OUT[ EZ_CELL_IND ] = 1.0;
+                    }
+
+                    else {
+
+                        EZ_STATE_OUT[ EZ_CELL_IND ] = myState;
+                    }
+                `;
+
+                let fragmentWGSL = 
+                `
+                    var rrr: f32 = 1;
+                    var ggg: f32 = 1;
+                    var bbb: f32 = 0;
+
+                    var cellVal: f32 = cellState[ EZ_REBUILT_INSTANCE + (0) * u32(grid.x * grid.y) ];
+
+                    var drawingWeightsOffset: u32 = EZ_CHUNK_IND * 3u; // 3 storage values for r,g,b
+
+                    if( cellVal < 1 ){
+                        rrr = 0;
+                        ggg = 0;
+                        bbb = 0;
+                    }
+                    else{
+
+                        rrr = EZ_STORAGE[ drawingWeightsOffset + 0 ];
+                        ggg = EZ_STORAGE[ drawingWeightsOffset + 1 ];
+                        bbb = EZ_STORAGE[ drawingWeightsOffset + 2 ];
+                        
+                    }
+
+                    EZ_OUTPUT.red = rrr;
+                    EZ_OUTPUT.grn = ggg;
+                    EZ_OUTPUT.blu = bbb; 
+                `;
+
+                // An Extra buffer of random f32's 0-1 to get a variety of colours
+                let randomConwayRGBs = new Float32Array( 256 );
+                EZWG.SHA1.seed('test seed 1234' + Date.now());
+                for(let b = 0;b < randomConwayRGBs.length;b++){ 
+                    
+                    randomConwayRGBs[b] = EZWG.SHA1.random()
+                }
+
+                document.getElementById('extraTitle').innerHTML = 'Check the console.log for the buffer every 100 steps'
+
+                // Usage example
+                let config = {
+
+                    CELL_SIZE: 5,
+                    CHUNK_SIZE: 32,
+                    CHUNKS_ACROSS: 3,
+                    PARTS_ACROSS: 1,
+
+                    READ_BACK_FREQ: 100,
+                    READ_BACK_FUNC: ( currentStep, entireBuffer ) => { console.log('entireBuffer', entireBuffer.length); },
+
+                    CONTAINER_ID:   'demoCanvasContainer',    // DOM id to insdert canvas to
+                    RAND_SEED:      'randomseed12345678910', 
+                    STARTING_CONFIG: EZWG.ALL_BINS,      // couldve been EZWG.ALL_ZERO
+                    COMPUTE_WGSL: `
+                        // The custom WGSL code goes here
+                        ${computeWGSL}
+                    `,
+
+                    FRAGMENT_WGSL: `
+                        // The custom WGSL code goes here
+                        ${fragmentWGSL}
+                    `,
+
+                    STORAGE: randomConwayRGBs
+
+                };
+
+                // Intital set the default runner to this
+                EZ_EXAMPLE = new EZWG( config);
+            },
+
+        // 6 (SIX) - Neural Network ( with QUADRANTS) 
+                //document.getElementById('extraTitle').innerHTML = 'Check the console.log for the buffer every 100 steps'
             () => {
                 let computeWGSL = 
                 `
@@ -746,6 +837,170 @@
                     var ggg: f32 = 0;
                     var bbb: f32 = 0;
 
+                    // Helper variables for readiblity
+                    var drawingWeightsOffset: u32 = 0;
+                    var cellVal: f32 = 0;
+                    var totalTypesLive: u32 = EZ_CELL_VALS;
+                    
+                    var valIndex: u32 = 0;  //< - the attribute index in a cell
+                    loop {
+                        if valIndex >= EZ_CELL_VALS { break; }
+
+                        // shift read location in storage buffer: 3 storage values for r,g,b
+                        drawingWeightsOffset = EZ_CHUNK_IND * 3u;
+                        // and also shift down the location to accomodate the multiple values per cell  
+                        drawingWeightsOffset = drawingWeightsOffset + (EZ_CELL_VALS * 3u) * valIndex;
+
+                        // Get the value
+                        cellVal = cellState[ EZ_REBUILT_INSTANCE + valIndex * EZ_TOTAL_CELLS ];
+                        if( cellVal < 1 ){
+                            totalTypesLive = totalTypesLive - 1;
+                        }
+                        else{ 
+                            rrr += EZ_STORAGE[ drawingWeightsOffset + 0 ];
+                            ggg += EZ_STORAGE[ drawingWeightsOffset + 1 ];
+                            bbb += EZ_STORAGE[ drawingWeightsOffset + 2 ]; 
+                        }
+                        valIndex++;
+                    }
+
+                    if( totalTypesLive < 1 ){
+                        rrr = 0;
+                        ggg = 0;
+                        bbb = 0;
+                    }
+                    else{
+                        rrr = rrr / f32(totalTypesLive);
+                        ggg = ggg / f32(totalTypesLive);
+                        bbb = bbb / f32(totalTypesLive);
+                    }
+
+                    EZ_OUTPUT.red = rrr;
+                    EZ_OUTPUT.grn = ggg;
+                    EZ_OUTPUT.blu = bbb;
+                `;
+
+                // An Extra buffer of random f32's 0-1 to get a variety of colours
+                let randomConwayRGBs = new Float32Array( 4096 );
+                EZWG.SHA1.seed('test seed 1234' + Date.now());
+                for(let b = 0;b < randomConwayRGBs.length;b++){
+                    randomConwayRGBs[b] = EZWG.SHA1.random()
+                } 
+
+                // Usage example
+                let config = {
+
+                    CELL_VALS: 17,   // Now this means 17 f32 values per cell
+                    CELL_SIZE: 4,
+                    CHUNK_SIZE: 32,
+                    CHUNKS_ACROSS: 4,
+                    PARTS_ACROSS: 1,
+
+                    CONTAINER_ID:   'demoCanvasContainer',    // DOM id to insdert canvas to
+                    RAND_SEED:      'randomseed12345678910', 
+                    STARTING_CONFIG: EZWG.ALL_BINS,      // couldve been EZWG.ALL_ZERO
+                    COMPUTE_WGSL: `
+                        // The custom WGSL code goes here
+                        ${computeWGSL}
+                    `,
+
+                    FRAGMENT_WGSL: `
+                        // The custom WGSL code goes here
+                        ${fragmentWGSL}
+                    `,
+
+                    STORAGE: randomConwayRGBs
+
+                };
+
+                // Intital set the default runner to this
+                EZ_EXAMPLE = new EZWG( config);
+            },
+        // 7 (SEVEN) - Mouse movement 
+            () => {
+                let computeWGSL = 
+                `
+
+                    // Helper variables for readability later on
+                    var attributeOffset: u32 = 0;
+                    var myState: f32 = 0;
+                    var totalNghbrCount: u32 = 0;
+
+                    // Loop through each value in the cell, and store their CGOL state value
+                    var neighbrs: array< f32, EZ_CELL_VALS >;
+                    var valIndex: u32 = 0;
+                    loop {
+                        if valIndex >= EZ_CELL_VALS { break; }
+                        
+                        neighbrs[ valIndex ] = 0f;
+                        attributeOffset = valIndex*EZ_TOTAL_CELLS;
+
+                        neighbrs[ valIndex ] += EZ_GET_CELL( EZX+1, EZY+1, valIndex, EZ_CHUNK_X, EZ_CHUNK_Y );      
+                        neighbrs[ valIndex ] += EZ_GET_CELL( EZX+1, EZY  , valIndex, EZ_CHUNK_X, EZ_CHUNK_Y );      
+                        neighbrs[ valIndex ] += EZ_GET_CELL( EZX+1, EZY-1, valIndex, EZ_CHUNK_X, EZ_CHUNK_Y );     
+                        neighbrs[ valIndex ] += EZ_GET_CELL( EZX  , EZY-1, valIndex, EZ_CHUNK_X, EZ_CHUNK_Y );    
+                        neighbrs[ valIndex ] += EZ_GET_CELL( EZX-1, EZY-1, valIndex, EZ_CHUNK_X, EZ_CHUNK_Y );   
+                        neighbrs[ valIndex ] += EZ_GET_CELL( EZX-1, EZY  , valIndex, EZ_CHUNK_X, EZ_CHUNK_Y );     
+                        neighbrs[ valIndex ] += EZ_GET_CELL( EZX-1, EZY+1, valIndex, EZ_CHUNK_X, EZ_CHUNK_Y );  
+                        neighbrs[ valIndex ] += EZ_GET_CELL( EZX  , EZY+1, valIndex, EZ_CHUNK_X, EZ_CHUNK_Y );
+
+                        myState = EZ_STATE_IN[ EZ_CELL_IND + attributeOffset ];
+                        totalNghbrCount = u32(neighbrs[ valIndex ]);
+
+                        // Implement CGOL rules for this value in memory
+                        if (myState == 1 && (totalNghbrCount < 2 || totalNghbrCount > 3)) {
+                            EZ_STATE_OUT[ EZ_CELL_IND + attributeOffset ] = 0.0;
+                        }
+                        else if (myState == 0 && totalNghbrCount == 3) {
+                            EZ_STATE_OUT[ EZ_CELL_IND + attributeOffset ] = 1.0;
+                        }
+                        else {
+                            EZ_STATE_OUT[ EZ_CELL_IND + attributeOffset ] = myState;
+                        }
+                        
+                        valIndex++;
+                    }
+
+
+
+                    // Here's the addition of mouse handling 
+                    //      'incrementer' variable for each f32 or u32 value in memory
+                    var i_EZ_userInputCounter: u32 = 0u;
+                    loop {
+                        if i_EZ_userInputCounter >= EZ_CELL_VALS { break; }
+
+                        let EZ_lastInputToChange         = EZ_TOTAL_CELLS * i_EZ_userInputCounter + EZ_CELL_IND;  
+
+                        var nuVal: f32 = EZ_STATE_IN[EZ_lastInputToChange];
+
+                        // Get the min max of the input coordinattres
+                        var minX: u32 = min( u32(EZ_USER_INPUT[0]),  u32(EZ_USER_INPUT[2]));
+                        var maxX: u32 = max( u32(EZ_USER_INPUT[0]),  u32(EZ_USER_INPUT[2]));
+                        var minY: u32 = min( u32(EZ_USER_INPUT[1]),  u32(EZ_USER_INPUT[3]));
+                        var maxY: u32 = max( u32(EZ_USER_INPUT[1]),  u32(EZ_USER_INPUT[3]));
+                        if( EZ_USER_INPUT[6] > 0 ){
+                            if( EZX >= minX && EZX <= maxX && EZY >= minY && EZY <= maxY ){
+                                EZ_STATE_OUT[ EZ_lastInputToChange ] = 1; 
+                            }
+                            else{
+                                EZ_STATE_OUT[ EZ_lastInputToChange ] = nuVal; 
+                            }
+                        }
+                        else{
+                            EZ_STATE_OUT[ EZ_lastInputToChange ] = nuVal; 
+                        }
+                        i_EZ_userInputCounter++;
+                    } 
+
+
+                    
+                `;
+
+                let fragmentWGSL = 
+                `
+                    var rrr: f32 = 0;
+                    var ggg: f32 = 0;
+                    var bbb: f32 = 0;
 
                     // Helper variables for readiblity
                     var drawingWeightsOffset: u32 = 0;
@@ -771,10 +1026,7 @@
                             ggg += EZ_STORAGE[ drawingWeightsOffset + 1 ];
                             bbb += EZ_STORAGE[ drawingWeightsOffset + 2 ]; 
                         }
-
-
                         valIndex++;
-
                     }
 
                     if( totalTypesLive < 1 ){
@@ -788,11 +1040,6 @@
                         bbb = bbb / f32(totalTypesLive);
                     }
 
-
-                    
-
-                    
-
                     EZ_OUTPUT.red = rrr;
                     EZ_OUTPUT.grn = ggg;
                     EZ_OUTPUT.blu = bbb;
@@ -801,19 +1048,18 @@
                 // An Extra buffer of random f32's 0-1 to get a variety of colours
                 let randomConwayRGBs = new Float32Array( 4096 );
                 EZWG.SHA1.seed('test seed 1234' + Date.now());
-                for(let b = 0;b < randomConwayRGBs.length;b++){ 
-                    
+                for(let b = 0;b < randomConwayRGBs.length;b++){
                     randomConwayRGBs[b] = EZWG.SHA1.random()
                 }
-                console.log(randomConwayRGBs)
+                document.getElementById('extraTitle').innerHTML = 'Click and drag to interact with simulation'
 
                 // Usage example
                 let config = {
 
-                    CELL_VALS: 12,   // Now this means 3 f32 values per cell
-                    CELL_SIZE: 5,
+                    CELL_VALS: 17,   // Now this means 17 f32 values per cell
+                    CELL_SIZE: 4,
                     CHUNK_SIZE: 32,
-                    CHUNKS_ACROSS: 3,
+                    CHUNKS_ACROSS: 4,
                     PARTS_ACROSS: 1,
 
                     CONTAINER_ID:   'demoCanvasContainer',    // DOM id to insdert canvas to
@@ -854,28 +1100,25 @@
 
         }
         function clearExample(){
+            document.getElementById('extraTitle').innerHTML = '';
             if( INTERVAL_ID ){
                 clearInterval( INTERVAL_ID )
             }
             if( EZ_EXAMPLE ){
-                EZ_EXAMPLE.flaggedForDeath = true;
                 EZ_EXAMPLE.killdeath()
             }
         } 
         function startExampleLoop(){
 		    INTERVAL_ID = setInterval( () => {
-                if( EZ_EXAMPLE.flaggedForDeath ){
-                    
-                }
-                else{
+                if( !EZ_EXAMPLE.suicide ){
                     EZ_EXAMPLE.run() 
-                }
+                } 
             }, EZ_EXAMPLE.UPDATE_INTERVAL ); 
         }
 
 
         clearExample();
-        loadExample(4)
+        loadExample(0)
 
 
     </script>

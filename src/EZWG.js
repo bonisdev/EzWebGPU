@@ -125,11 +125,24 @@ class EZWG {
         this.CELL_STIM_LOCATIONS = 4;  
 
 
-        this.dragStartX = -1
-        this.dragStartY = -1
-        this.isDragging = false;
-        this.LAST_CELL_X = -1
-        this.LAST_CELL_Y = -1
+        // this.dragStartX = -1
+        // this.dragStartY = -1
+        // this.isDragging = false;
+        // this.LAST_CELL_X = -1
+        // this.LAST_CELL_Y = -1
+
+        this.ezweb = {
+            isDragging: false,
+            CELL_SIZE: this.CELL_SIZE,
+            GRID_SIZE: this.GRID_SIZE,
+            liveInput: Array(7).fill(0),
+            dragStartX: 0,
+            dragStartY: 0,
+            dragEndX: 0,
+            dragEndY: 0,
+            LAST_CELL_X: 0,
+            LAST_CELL_Y: 0
+          };
   
     }
 
@@ -295,11 +308,10 @@ class EZWG {
         this.canvas = document.createElement('canvas'); 
 
         
-		//canvas.addEventListener( 'click', handleClick );
-		this.canvas.addEventListener('mousedown', (event) => handleMouseDown(event, this.canvas, this));
-		//canvas.addEventListener('mousemove', handleMouseMove);
-		this.canvas.addEventListener('mouseup', (event) => handleMouseUp(event, this.canvas, this));
-        this.canvas.addEventListener('keydown', (event) => handleKeyDown(event, this.canvas, this));
+		this.canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
+        this.canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
+
+        //this.canvas.addEventListener('keydown', (event) => handleKeyDown(event, this.canvas, this));
 
 
 		this.canvas.width = this.GRID_SIZE * this.CELL_SIZE;
@@ -452,7 +464,7 @@ class EZWG {
                 
 				// let corrected_instance = f32(instance);
 				let i = f32(EZ_INSTANCE);
-                let caW: f32 = `+ this.PARTS_ACROSS+`f;
+                let EZ_PARTS_ACROSS_F: f32 = `+ this.PARTS_ACROSS+`f;
                 let caWu: u32 = `+this.PARTS_ACROSS+`u;
 
                 let EZ_CHUNK_SIZE: u32 = `+this.CHUNK_SIZE+`u;
@@ -477,8 +489,8 @@ class EZWG {
                 // Cell size 
                 var EZ_h_clsX: f32 = (1 / grid.x) * 2;
                 var EZ_h_clsY: f32 = (1 / grid.y) * 2;
-                var EZ_h_smlDx: f32 = (1/caW) * EZ_h_clsX;
-                var EZ_h_smlDy: f32 = (1/caW) * EZ_h_clsY;
+                var EZ_h_smlDx: f32 = (1/EZ_PARTS_ACROSS_F) * EZ_h_clsX;
+                var EZ_h_smlDy: f32 = (1/EZ_PARTS_ACROSS_F) * EZ_h_clsY;
 
                 EZ_h_pos.x = EZ_h_pos.x + (f32(EZ_COMP_X) * EZ_h_smlDx) - (EZ_h_clsX*0.5) + EZ_h_smlDx/2;
                 EZ_h_pos.y = EZ_h_pos.y + (f32(EZ_COMP_Y) * EZ_h_smlDy) - (EZ_h_clsY*0.5) + EZ_h_smlDy/2;
@@ -602,35 +614,7 @@ class EZWG {
 
                 ` + this.COMPUTE_WGSL + `
 
-				if( 4 > 5 ){
-                    // 'incrementer' variable for each f32 or u32 value in memory
-                    var i_EZ_userInputCounter: u32 = 0u;
-                    loop {
-                        if i_EZ_userInputCounter >= EZ_CELL_VALS { break; }
-
-                        let EZ_lastInputToChange         = EZ_TOTAL_CELLS * i_EZ_userInputCounter + EZ_CELL_IND;  
-
-                        var nuVal: f32 = EZ_STATE_IN[EZ_lastInputToChange];
-
-                        // Get the min max of the input coordinattres
-                        var minX: u32 = min( u32(EZ_USER_INPUT[0]),  u32(EZ_USER_INPUT[2]));
-                        var maxX: u32 = max( u32(EZ_USER_INPUT[0]),  u32(EZ_USER_INPUT[2]));
-                        var minY: u32 = min( u32(EZ_USER_INPUT[1]),  u32(EZ_USER_INPUT[3]));
-                        var maxY: u32 = max( u32(EZ_USER_INPUT[1]),  u32(EZ_USER_INPUT[3]));
-                        if( EZ_USER_INPUT[6] > 0 ){
-                            if( EZX >= minX && EZX <= maxX && EZY >= minY && EZY <= maxY ){
-                                EZ_STATE_OUT[ EZ_lastInputToChange ] = 1; 
-                            }
-                            else{
-                                EZ_STATE_OUT[ EZ_lastInputToChange ] = nuVal; 
-                            }
-                        }
-                        else{
-                            EZ_STATE_OUT[ EZ_lastInputToChange ] = nuVal; 
-                        }
-                        i_EZ_userInputCounter++;
-                    }
-                }
+				
 
 			}
 		`;
@@ -871,6 +855,7 @@ class EZWG {
             let doReadBack = false;
             const encoder_cpu_helper = this.device.createCommandEncoder();
  
+            //console.log(this.READ_BACK_FREQ, '---', this.step)
             if(this.READ_BACK_FREQ> -1 && (this.step % this.READ_BACK_FREQ === 0)){ 
                 doReadBack = true; 
 
@@ -1036,8 +1021,6 @@ class EZWG {
         } 
     }
     initTheInitialCellStateAllRand( cellStateArray, seeed, grid_size ){
-        let nuSeed = 'insI2' + seeed;
-        //let rand = new PseudRand( nuSeed );
         let daBigONe = this.CHUNKS_ACROSS * this.CHUNKS_ACROSS * this.CHUNK_SIZE * this.CHUNK_SIZE
         for(let ii = 0;ii < daBigONe;ii++){ 
             for(let c = 0;c < this.CELL_VALS;c++){
@@ -1048,8 +1031,6 @@ class EZWG {
         }
     }
     initTheInitialCellStateAllRandBins( cellStateArray, seeed, grid_size ){
-        let nuSeed = 'insI2' + seeed;
-        //let rand = new PseudRand( nuSeed );
         let daBigONe = this.CHUNKS_ACROSS * this.CHUNKS_ACROSS * this.CHUNK_SIZE * this.CHUNK_SIZE
         for(let ii = 0;ii < daBigONe;ii++){
             for(let c = 0;c < this.CELL_VALS;c++){
@@ -1060,8 +1041,6 @@ class EZWG {
         }
     }
     initTheInitialCellStateAllZeros( cellStateArray, seeed, grid_size ){
-        let nuSeed = 'insI2' + seeed;
-        let rand = new PseudRand( nuSeed );
         let daBigONe = this.CHUNKS_ACROSS * this.CHUNKS_ACROSS * this.CHUNK_SIZE * this.CHUNK_SIZE
         for(let ii = 0;ii < daBigONe;ii++){
             for(let c = 0;c < this.CELL_VALS;c++){
@@ -1072,52 +1051,41 @@ class EZWG {
         }
     }
 
-    handleMouseDown( event, canvas, ezweb ){
-        ezweb.isDragging = true;
-        const rect = canvas.getBoundingClientRect();
+    handleMouseDown(event) {
+        this.ezweb.isDragging = true;
+        const rect = this.canvas.getBoundingClientRect();
         const xx = event.clientX - rect.left;
         const yy = event.clientY - rect.top;
-        ezweb.dragStartX = Math.floor( xx / ezweb.CELL_SIZE );
-        ezweb.dragStartY = Math.floor( yy / ezweb.CELL_SIZE );
+        this.ezweb.dragStartX = Math.floor(xx / this.ezweb.CELL_SIZE);
+        this.ezweb.dragStartY = Math.floor(yy / this.ezweb.CELL_SIZE);
     }
 
-    handleMouseUp(event, canvas, ezweb) {
-        if (ezweb.isDragging) {
-            ezweb.isDragging = false;
-            const rect = canvas.getBoundingClientRect();
+    handleMouseUp(event) {
+        if (this.ezweb.isDragging) {
+            this.ezweb.isDragging = false;
+            const rect = this.canvas.getBoundingClientRect();
             const xx = event.clientX - rect.left;
             const yy = event.clientY - rect.top;
-            ezweb.dragEndX = Math.floor( xx / ezweb.CELL_SIZE );
-            ezweb.dragEndY = Math.floor( yy / ezweb.CELL_SIZE );
+            this.ezweb.dragEndX = Math.floor(xx / this.ezweb.CELL_SIZE);
+            this.ezweb.dragEndY = Math.floor(yy / this.ezweb.CELL_SIZE);
 
-            if(ezweb.liveInput[6] < 1){
-                //[0] startSelectX
-                //[1] endSelectY
-                //[2] startSelectY
-                //[3] endSelectX
+            if (this.ezweb.liveInput[6] < 1) {
+                this.ezweb.liveInput[0] = this.ezweb.dragStartX;
+                this.ezweb.liveInput[1] = (this.ezweb.GRID_SIZE - 1) - this.ezweb.dragStartY;
+                this.ezweb.liveInput[2] = this.ezweb.dragEndX;
+                this.ezweb.liveInput[3] = (this.ezweb.GRID_SIZE - 1) - this.ezweb.dragEndY;
+                this.ezweb.liveInput[4] = 1;
+                this.ezweb.liveInput[5] = 0;
+                this.ezweb.liveInput[6] = 1;
 
-                //[4] toolMode (0) = nothing, (1) = place, 
-                //[5] exctra tool meta
-                //[6] activate input or not
+                this.ezweb.LAST_CELL_X = this.ezweb.dragStartX;
+                this.ezweb.LAST_CELL_Y = this.ezweb.dragStartY;
 
-                ezweb.liveInput[0] = ezweb.dragStartX;
-                ezweb.liveInput[1] = (ezweb.GRID_SIZE-1) - ezweb.dragStartY;
-                ezweb.liveInput[2] = ezweb.dragEndX;
-                ezweb.liveInput[3] = (ezweb.GRID_SIZE-1) - ezweb.dragEndY;     // Bounding box coordinates
-                ezweb.liveInput[4] = 1;                   // Tool   
-                ezweb.liveInput[5] = 0;//,  tool meta
-                ezweb.liveInput[6] = 1;// set the flag to YES use
-
-                ezweb.LAST_CELL_X = ezweb.dragStartX;
-                ezweb.LAST_CELL_Y = ezweb.dragStartY;
-
-                console.log(ezweb.liveInput)
-                
             }
-
+            console.log(this.ezweb.liveInput);
         }
     }
- 
+
     static SHA1 = {
         state: {
             lastseed: '',
