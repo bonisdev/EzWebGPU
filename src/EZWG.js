@@ -35,7 +35,8 @@ class EZWG {
             FRAGMENT_WGSL: '',
             READ_BACK_FUNC: ( currentStep, entireBuffer ) => {},
             CELL_SIZE: 8,
-            STORAGE: (new Float32Array(1))
+            STORAGE: (new Float32Array(1)),
+            WORKGROUP_SIZE: 9
         };
  
         // Merge defaults with the provided config
@@ -56,6 +57,7 @@ class EZWG {
         this.READ_BACK_FUNC = this.config.READ_BACK_FUNC;
         this.CELL_SIZE = this._validatePositiveInteger(this.config.CELL_SIZE, 'CELL_SIZE');
         this.STORAGE = this.config.STORAGE;//this._validateArray(this.BUFFER_DATA_TYPE, this.config.STORAGE, 'STORAGE');
+        this.WORKGROUP_SIZE = this._validatePositiveInteger(this.config.WORKGROUP_SIZE, 'WORKGROUP_SIZE');
         //this.STORAGE_SIZE = this._validatePositiveInteger(this.config.STORAGE_SIZE, 'STORAGE_SIZE');
  
         // if(this.STORAGE.length < 2){
@@ -92,7 +94,6 @@ class EZWG {
         this.GRID_SIZE = (this.CHUNK_SIZE * this.CHUNKS_ACROSS)
         this.TOTAL_CELLS = this.GRID_SIZE * this.GRID_SIZE 
         this.UPDATE_INTERVAL = 50
-        this.WORKGROUP_SIZE = 8
 
         this.USER_INPUT_BUFFER_SIZE = 8*8 
 
