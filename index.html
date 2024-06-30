@@ -317,30 +317,30 @@
 
 
         document.addEventListener("DOMContentLoaded", function() {
-            const codeEditor = document.getElementById("codeEditor");
-            const lineNumbers = document.getElementById("lineNumbers");
-            const copyButton = document.getElementById("copyButton");
+            // const codeEditor = document.getElementById("codeEditor");
+            // const lineNumbers = document.getElementById("lineNumbers");
+            // const copyButton = document.getElementById("copyButton");
         
-            codeEditor.addEventListener("input", updateLineNumbers);
-            codeEditor.addEventListener("scroll", () => {
-                lineNumbers.scrollTop = codeEditor.scrollTop;
-            });
+            // codeEditor.addEventListener("input", updateLineNumbers);
+            // codeEditor.addEventListener("scroll", () => {
+            //     lineNumbers.scrollTop = codeEditor.scrollTop;
+            // });
         
-            copyButton.addEventListener("click", copyToClipboard);
+            // copyButton.addEventListener("click", copyToClipboard);
         
-            function updateLineNumbers() {
-                const lines = codeEditor.value.split('\n').length;
-                lineNumbers.innerHTML = Array(lines).fill(0).map((_, i) => `<div>${i + 1}</div>`).join('');
-            }
+            // function updateLineNumbers() {
+            //     const lines = codeEditor.value.split('\n').length;
+            //     lineNumbers.innerHTML = Array(lines).fill(0).map((_, i) => `<div>${i + 1}</div>`).join('');
+            // }
         
-            function copyToClipboard() {
-                codeEditor.select();
-                document.execCommand("copy");
-                alert("Code copied to clipboard!");
-            }
+            // function copyToClipboard() {
+            //     codeEditor.select();
+            //     document.execCommand("copy");
+            //     alert("Code copied to clipboard!");
+            // }
         
-            // Initialize line numbers
-            updateLineNumbers();
+            // // Initialize line numbers
+            // updateLineNumbers();
         });
 
 
@@ -355,21 +355,22 @@
         const ALL_EXAMPLES = [
 
         // 1 (ONE) - Standard Conway Game of Life
-            () => {
+        () => {
                 let computeWGSL = 
                 `
                     var neighbs: f32 = 0;
-                    neighbs += EZ_GET_CELL( EZX+1, EZY+1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );      
-                    neighbs += EZ_GET_CELL( EZX+1, EZY  , 0, EZ_CHUNK_X, EZ_CHUNK_Y );      
-                    neighbs += EZ_GET_CELL( EZX+1, EZY-1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );     
-                    neighbs += EZ_GET_CELL( EZX  , EZY-1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );    
-                    neighbs += EZ_GET_CELL( EZX-1, EZY-1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );   
-                    neighbs += EZ_GET_CELL( EZX-1, EZY  , 0, EZ_CHUNK_X, EZ_CHUNK_Y );     
-                    neighbs += EZ_GET_CELL( EZX-1, EZY+1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );  
-                    neighbs += EZ_GET_CELL( EZX  , EZY+1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );
+                    neighbs += EZ_GET_CELL(EZX+1, EZY+1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );
+                    neighbs += EZ_GET_CELL(EZX+1, EZY  , 0, EZ_CHUNK_X, EZ_CHUNK_Y );
+                    neighbs += EZ_GET_CELL(EZX+1, EZY-1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );
+                    neighbs += EZ_GET_CELL(EZX  , EZY-1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );
+                    neighbs += EZ_GET_CELL(EZX-1, EZY-1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );
+                    neighbs += EZ_GET_CELL(EZX-1, EZY  , 0, EZ_CHUNK_X, EZ_CHUNK_Y );
+                    neighbs += EZ_GET_CELL(EZX-1, EZY+1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );
+                    neighbs += EZ_GET_CELL(EZX  , EZY+1, 0, EZ_CHUNK_X, EZ_CHUNK_Y );
 
                     var myState: f32 = EZ_STATE_IN[ EZ_CELL_IND ];
 
+                    
                     if (myState == 1 && (neighbs < 2 || neighbs > 3)) {
                         EZ_STATE_OUT[ EZ_CELL_IND ] = 0.0;
                     }
@@ -383,14 +384,21 @@
 
                 let fragmentWGSL = 
                 `
-                    var rrr: f32 = 1;
-                    var ggg: f32 = 1;
-                    var bbb: f32 = 1; 
+                    var rrr: f32 = 0;
+                    var ggg: f32 = 0;
+                    var bbb: f32 = 0;
 
-                    if( cellState[ EZ_REBUILT_INSTANCE + (0) * u32(grid.x * grid.y) ] < 1 ){
+                    var cellVal: f32 = cellState[ EZ_REBUILT_INSTANCE + (0) * EZ_TOTAL_CELLS ];
+
+                    if( cellVal < 1 ){
                         rrr = 0;
                         ggg = 0;
                         bbb = 0;
+                    }
+                    else{
+                        rrr = 1;
+                        ggg = 1;
+                        bbb = 1;
                     }
 
                     EZ_OUTPUT.red = rrr;
@@ -403,6 +411,7 @@
 
                     CELL_SIZE: 2,
                     CHUNK_SIZE: 256,
+                    CHUNKS_ACROSS: 1,
 
                     CONTAINER_ID:   'demoCanvasContainer',    // DOM id to insdert canvas to
                     RAND_SEED:      'randomseed12345678910', 
@@ -416,12 +425,17 @@
                         // The custom WGSL code goes here
                         ${fragmentWGSL}
                     `
+
                 };
 
                 // Intital set the default runner to this
                 EZ_EXAMPLE = new EZWG( config);
-            },
 
+                document.getElementById('extraTitle').innerHTML = 
+                `
+                    <p style="color: red;">For some reason CHUNK_SIZE 256 results in this flashing...  255 and 257 work fine again</p>
+                `;
+            },
         // 2 (TWO) - Standard Conway Game of Life (QUADRANTS)
             () => {
                 let computeWGSL = 
@@ -456,7 +470,7 @@
                     var ggg: f32 = 1;
                     var bbb: f32 = 0;
 
-                    var cellVal: f32 = cellState[ EZ_REBUILT_INSTANCE + (0) * u32(grid.x * grid.y) ];
+                    var cellVal: f32 = cellState[ EZ_REBUILT_INSTANCE + (0) * EZ_TOTAL_CELLS ];
 
                     if( cellVal < 1 ){
                         rrr = 0;
@@ -549,7 +563,7 @@
                     var ggg: f32 = 1;
                     var bbb: f32 = 0;
 
-                    var cellVal: f32 = cellState[ EZ_REBUILT_INSTANCE + (0) * u32(grid.x * grid.y) ];
+                    var cellVal: f32 = cellState[ EZ_REBUILT_INSTANCE + (0) * EZ_TOTAL_CELLS ];
 
                     if( cellVal < 1 ){
                         rrr = 0;

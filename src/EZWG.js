@@ -131,7 +131,7 @@ class EZWG {
         // this.LAST_CELL_X = -1
         // this.LAST_CELL_Y = -1
 
-        this.liveInput = (new Array(7)).fill(0);
+        this.liveInput = ( new Float32Array( this.USER_INPUT_BUFFER_SIZE ) ).fill(0);
         this.ezweb = {
             isDragging: false,
             CELL_SIZE: this.CELL_SIZE,
@@ -499,8 +499,7 @@ class EZWG {
 				EZ_OUTPUT.cell = EZ_CELL / (grid*1);
 				
                 //--------------------------------------------------------- Newly added to sort
-                const EZ_CELL_VALS: u32 = `+this.CELL_VALS+`u; 
-                const CHUNK_SIZE: u32 = `+this.CHUNK_SIZE+`u;
+                const EZ_CELL_VALS: u32 = `+this.CELL_VALS+`u;
                 const CHUNKS_ACROSS: u32 = `+this.CHUNKS_ACROSS+`u;
 
                 const EZ_cellParts: u32 = `+this.PARTS_ACROSS+`u; 
@@ -688,7 +687,7 @@ class EZWG {
 
 		//0-mouseX pos, 1-mouseY pos, 2- special inst, 3-specialinst
         // This the one that gets changed on the CPU side and is red in
-        this.liveInput = ( new Float32Array( this.USER_INPUT_BUFFER_SIZE ) ).fill(0);
+        //this.liveInput = ( new Float32Array( this.USER_INPUT_BUFFER_SIZE ) ).fill(0);
 		this.userInputTempStorage = 
 			this.device.createBuffer({
 				label: "Temp User Input 1",
@@ -743,10 +742,7 @@ class EZWG {
 		//    this.cellStateArray[i] = Math.random() > 0.66 ? 1 : 0;
 		//}
 		// Add the extra bit of information per cell+
-		
-
-		//this.initTheInitialCellStateArray_withNeighbours( this.cellStateArray, this.RAND_SEED, this.GRID_SIZE );
-		
+		 
         if( this.STARTING_CONFIG === EZWG.ALL_RANDS){
             this.initTheInitialCellStateAllRand( this.cellStateArray, this.RAND_SEED, this.GRID_SIZE );
         }
