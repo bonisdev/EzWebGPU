@@ -1,3 +1,5 @@
+![Logo](assets/ogo.png)
+
 # EzWebGPU
 
 ## Pre-Computed Constants
