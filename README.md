@@ -6,20 +6,19 @@
 
 The following constants are automatically added to your WGSL shader code:
 
-- **EZ_CELLS_ACROSS_X**: Total cells across the x-axis.
-- **EZ_CELLS_ACROSS_Y**: Total cells across the y-axis.
+- **EZX**: Current cell's X coordinate (0-63 on a grid 64x64)
+- **EZY**: Current cell's Y coordinate (0-63 on a grid 64x64)
+- **EZ_CELL_IND**: Another measure of cell's location derived from (0-4095 on a grid 64x64)
+- **EZ_CHUNK_X**: Current cell's home chunk (0-2 on a grid partitioned into 3x3 chunks)
+- **EZ_CHUNK_Y**: Current cell's home chunk (0-2 on a grid partitioned into 3x3 chunks)
+- **EZ_CHUNK_IND**: Another measure of cell's home chunk derived from (0-8 on a 3x3 chunked grid)
+- **EZ_CELL_VALS**: Number of individual U32 or F32 values in a cell 
+- **EZ_CELLS_ACROSS_X**: Total cells across the x-axis (would be 64 on a grid 64x64)
+- **EZ_CELLS_ACROSS_Y**: Total cells across the y-axis (would be 64 on a grid 64x64)
 
 ### Example
 
-```wgsl
-// Example shader using EZ_CELLS_ACROSS_X and EZ_CELLS_ACROSS_Y
-@compute @workgroup_size(1)
-fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
-    let cell_x = GlobalInvocationID.x % EZ_CELLS_ACROSS_X;
-    let cell_y = GlobalInvocationID.y % EZ_CELLS_ACROSS_Y;
-    // Additional code here
-}
-```
+Conway's Game of Life:
 
 ```wgsl
  let computeWGSL =

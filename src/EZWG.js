@@ -36,7 +36,7 @@ class EZWG {
             READ_BACK_FUNC: ( currentStep, entireBuffer ) => {},
             CELL_SIZE: 8,
             STORAGE: (new Float32Array(1)),
-            WORKGROUP_SIZE: 9
+            WORKGROUP_SIZE: 9   //Normally i leave it at 8 but it causes this weird flashing bug sometimes - could be a WebGPU bug
         };
  
         // Merge defaults with the provided config
@@ -57,6 +57,7 @@ class EZWG {
         this.READ_BACK_FUNC = this.config.READ_BACK_FUNC;
         this.CELL_SIZE = this._validatePositiveInteger(this.config.CELL_SIZE, 'CELL_SIZE');
         this.STORAGE = this.config.STORAGE;//this._validateArray(this.BUFFER_DATA_TYPE, this.config.STORAGE, 'STORAGE');
+        this.STARTING_STATE = this.config.STARTING_STATE;
         this.WORKGROUP_SIZE = this._validatePositiveInteger(this.config.WORKGROUP_SIZE, 'WORKGROUP_SIZE');
         //this.STORAGE_SIZE = this._validatePositiveInteger(this.config.STORAGE_SIZE, 'STORAGE_SIZE');
  
@@ -456,7 +457,7 @@ class EZWG {
 			};
 
 			@group(0) @binding(0) var<uniform> grid: vec2f;
-			@group(0) @binding(1) var<storage> cellState: array<f32>; 
+			@group(0) @binding(1) var<storage> EZ_STATE: array<f32>; 
 			@group(0) @binding(4) var<storage> EZ_STORAGE: array<f32>;
 
 			@vertex
