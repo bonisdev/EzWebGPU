@@ -1,3 +1,4 @@
+
 let computeWGSL = 
 `
     var neighbs: f32 = 0;
@@ -13,11 +14,12 @@ let computeWGSL =
     var myState: f32 = EZ_STATE_IN[ EZ_CELL_IND ];
 
     if (myState == 1 && (neighbs < 2 || neighbs > 3)) {
-        EZ_STATE_OUT[ EZ_CELL_IND ] = 0.0;
+        EZ_STATE_OUT[ EZ_CELL_IND ] = 0.9;
     }
     else if (myState == 0 && neighbs == 3) {
         EZ_STATE_OUT[ EZ_CELL_IND ] = 1.0;
     }
+
     else {
         EZ_STATE_OUT[ EZ_CELL_IND ] = myState;
     }
@@ -29,7 +31,9 @@ let fragmentWGSL =
     var ggg: f32 = 1;
     var bbb: f32 = 0;
 
-    var cellVal: f32 = cellState[ EZ_REBUILT_INSTANCE + (0) * EZ_TOTAL_CELLS ];
+    var cellVal: f32 = EZ_STATE[ EZ_REBUILT_INSTANCE + (0) * u32(grid.x * grid.y) ];
+
+    var drawingWeightsOffset: u32 = EZ_CHUNK_IND * 3u; // 3 storage values for r,g,b
 
     if( cellVal < 1 ){
         rrr = 0;
@@ -38,20 +42,9 @@ let fragmentWGSL =
     }
     else{
 
-        // Calc distance 
-        var distFromCenter: f32 = abs( EZ_PARTS_ACROSS_F/2f - f32(EZ_COMP_X) );
-        distFromCenter = abs( distFromCenter + ((EZ_PARTS_ACROSS_F/2f)-f32(EZ_COMP_Y)) ) ;
-        distFromCenter = distFromCenter / ( EZ_PARTS_ACROSS_F );
-
-        let offR = 0.44 + (f32(EZ_CHUNK_X) * 0.913 + f32(EZ_CHUNK_Y) * 0.7121) % 1;
-        let offG = 0.78 + (f32(EZ_CHUNK_X) * 0.513 + f32(EZ_CHUNK_Y) * 0.8121) % 1;
-        let offB = 0.41 + (f32(EZ_CHUNK_X) * 0.693 + f32(EZ_CHUNK_Y) * 0.4121) % 1;
-
-        rrr = offR * (1f - distFromCenter);
-        ggg = offG * (1f - distFromCenter);
-        bbb = offB * (1f - distFromCenter);
-        
-
+        rrr = EZ_STORAGE[ drawingWeightsOffset + 0 ];
+        ggg = EZ_STORAGE[ drawingWeightsOffset + 1 ];
+        bbb = EZ_STORAGE[ drawingWeightsOffset + 2 ];
         
     }
 
@@ -60,13 +53,20 @@ let fragmentWGSL =
     EZ_OUTPUT.blu = bbb; 
 `;
 
+// An Extra buffer of random f32's 0-1 to get a variety of colours
+let randomConwayRGBs = new Float32Array( 256 );
+EZWG.SHA1.seed('test seed 1234' + Date.now());
+for(let b = 0;b < randomConwayRGBs.length;b++){ 
+    randomConwayRGBs[b] = EZWG.SHA1.random()
+}
+
 // Usage example
 let config = {
 
-    CELL_SIZE: 8,
+    CELL_SIZE: 5,
     CHUNK_SIZE: 32,
-    CHUNKS_ACROSS: 2,
-    PARTS_ACROSS: 8,
+    CHUNKS_ACROSS: 3,
+    PARTS_ACROSS: 5,
 
     CONTAINER_ID:   'demoCanvasContainer',    // DOM id to insdert canvas to
     RAND_SEED:      'randomseed12345678910', 
@@ -79,7 +79,9 @@ let config = {
     FRAGMENT_WGSL: `
         // The custom WGSL code goes here
         ${fragmentWGSL}
-    `
+    `,
+
+    STORAGE: randomConwayRGBs
 
 };
 

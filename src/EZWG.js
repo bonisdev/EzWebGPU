@@ -457,7 +457,7 @@ class EZWG {
 			};
 
 			@group(0) @binding(0) var<uniform> grid: vec2f;
-			@group(0) @binding(1) var<storage> EZ_STATE: array<f32>; 
+			@group(0) @binding(1) var<storage> EZ_STATE_IN: array<f32>; 
 			@group(0) @binding(4) var<storage> EZ_STORAGE: array<f32>;
 
 			@vertex
@@ -478,6 +478,10 @@ class EZWG {
                 var EZ_RAW_COL: u32 = EZ_INSTANCE % (EZ_CELLS_ACROSS_X * caWu);
                 var EZ_RAW_ROW: u32 = EZ_INSTANCE / (EZ_CELLS_ACROSS_Y * caWu);
 				let EZ_CELL = vec2f( f32(EZ_RAW_COL / caWu), f32(EZ_RAW_ROW / caWu) );
+
+                var EZX: u32 = EZ_RAW_COL / caWu;
+                var EZY: u32 = EZ_RAW_ROW / caWu;
+                var EZ_CELL_IND: u32 = EZX + ( EZY * EZ_CELLS_ACROSS_X);
 
                 // Component metas
                 var EZ_COMP_X: u32 = EZ_RAW_COL % caWu;
@@ -579,9 +583,12 @@ class EZWG {
 			@group(0) @binding(3) var<storage, read_write> EZ_USER_INPUT: array<f32>;
 			@group(0) @binding(4) var<storage> EZ_STORAGE: array<f32>;
 
+            // Confines to entire grid space
 			fn EZ_helper_cellIndex(cell: vec2u) -> u32 {
 				return ((cell.y+u32(grid.y)) % u32(grid.y)) * u32(grid.x) + ((cell.x+u32(grid.x)) % u32(grid.x));
 			} 
+
+            // Confines to a chunk location
             fn EZ_helper_cellIndexChkRel(cell: vec2u, ogcx: u32, ogcy: u32, chk: u32) -> u32 {
                 var nuCellX: u32 = cell.x + (ogcx*chk);
                 var nuCellY: u32 = cell.y + (ogcy*chk); 
@@ -591,7 +598,14 @@ class EZWG {
             // Use any X,Y, attribute locations, and chunk coordinates
             fn EZ_GET_CELL(x: u32, y: u32, att: u32, ocx: u32, ocy: u32 ) -> f32 {
 				return EZ_STATE_IN[ att * u32( grid.x * grid.y ) + EZ_helper_cellIndexChkRel( vec2( (x+`+this.CHUNK_SIZE+`u)%`+this.CHUNK_SIZE+`u,(y+`+this.CHUNK_SIZE+`u)%`+this.CHUNK_SIZE+`u ), ocx, ocy, `+this.CHUNK_SIZE+`u )  ];
-			} 
+			}
+            
+            fn EZ_RAND( seed: u32 ) -> f32 {
+                let a: u32 = 1664525u;
+                var c: u32 = 1013904223u;
+                c = a * seed + c;
+                return f32(c & 0x00FFFFFFu)  / f32(0x01000000u);
+            }
 
 			@compute @workgroup_size( ${this.WORKGROUP_SIZE}, ${this.WORKGROUP_SIZE} )
 			fn computeMain(@builtin(global_invocation_id) EZ_CELL: vec3u) {

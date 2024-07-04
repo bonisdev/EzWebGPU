@@ -80,6 +80,7 @@ let config = {
   CELL_SIZE: 1,
   CHUNK_SIZE: 256,
   CHUNKS_ACROSS: 1,
+  PARTS_ACROSS: 1,
 
   CONTAINER_ID: "demoCanvasContainer", // DOM id to insdert canvas to
   RAND_SEED: "randomseed12345678910",
@@ -102,3 +103,6 @@ document.getElementById("extraTitle").innerHTML = `
     <p style="color: red;">If this example is just flashing and not progressing to the next CGOL step contact admin immediately (important)</p>
 `;
 ```
+
+### EZ Cheat Sheet
+![Logo](assets/ezcs.png)
