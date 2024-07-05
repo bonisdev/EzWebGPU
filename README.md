@@ -2,6 +2,10 @@
 
 # EzWebGPU.js
 
+## Live demo!
+(https://bonisdev.github.io/EzWebGPU/)
+
+
 ## Pre-Computed Constants
 
 The following constants are automatically added to your WGSL shader code:
@@ -16,7 +20,7 @@ The following constants are automatically added to your WGSL shader code:
 - **EZ_CELLS_ACROSS_X**: Total cells across the x-axis (would be 64 on a grid 64x64)
 - **EZ_CELLS_ACROSS_Y**: Total cells across the y-axis (would be 64 on a grid 64x64)
 
-### Example
+### Example code
 
 Conway's Game of Life:
 
