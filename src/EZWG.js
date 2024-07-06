@@ -36,7 +36,8 @@ class EZWG {
             READ_BACK_FUNC: ( currentStep, entireBuffer ) => {},
             CELL_SIZE: 8,
             STORAGE: (new Float32Array(1)),
-            WORKGROUP_SIZE: 9   //Normally i leave it at 8 but it causes this weird flashing bug sometimes - could be a WebGPU bug
+            WORKGROUP_SIZE: 9,      // normally i leave it at 8 but it causes this weird flashing bug sometimes - could be a WebGPU bug
+            STARTING_BUFFER: []     // if it's empty 
         };
  
         // Merge defaults with the provided config
@@ -57,9 +58,11 @@ class EZWG {
         this.READ_BACK_FUNC = this.config.READ_BACK_FUNC;
         this.CELL_SIZE = this._validatePositiveInteger(this.config.CELL_SIZE, 'CELL_SIZE');
         this.STORAGE = this.config.STORAGE;//this._validateArray(this.BUFFER_DATA_TYPE, this.config.STORAGE, 'STORAGE');
-        this.STARTING_STATE = this.config.STARTING_STATE;
         this.WORKGROUP_SIZE = this._validatePositiveInteger(this.config.WORKGROUP_SIZE, 'WORKGROUP_SIZE');
+        this.STARTING_BUFFER = this.config.STARTING_BUFFER;
         //this.STORAGE_SIZE = this._validatePositiveInteger(this.config.STORAGE_SIZE, 'STORAGE_SIZE');
+
+        
  
         // if(this.STORAGE.length < 2){
         //     this.STORAGE; 
@@ -231,55 +234,60 @@ class EZWG {
         this.context.fillStyle = 'gray';
         this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-        const text = 'no web gpu detected';
-        const fontSize = 20;
-        this.context.font = `${fontSize}px Arial`;
+        this.context.font = `${20}px Arial`;
 
         let offsetX = 0;
         let offsetY = 0;
 
-        const drawText = (timestamp) => {
-            this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-            this.context.fillStyle = 'gray';
-            this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
-            function pseudoRandom(x, y, t) {
-                // A simple pseudo-random function
-                return Math.sin(x * 12.9898 + y * 78.233 + t * 0.5) * 43758.5453 % 1;
-            }
-            
-            for (let i = 0; i < this.canvas.height / fontSize; i++) {
-                for (let j = 0; j < this.canvas.width / fontSize; j++) {
-                    const pulse = Math.sin((timestamp + (i + j) * 100) / 500) * 0.5 + 0.5;
-                    this.context.fillStyle = `rgba(255, 0, 0, ${pulse})`;
-            
-                    const angle = (timestamp / 1000) % (2 * Math.PI);
-                    
-                    // Add deterministic randomness
-                    const offsetX = (pseudoRandom(i, j, timestamp) - 0.5) * 10; // Adjust the multiplier for more/less spread
-                    const offsetY = (pseudoRandom(i + 1, j + 1, timestamp) - 0.5) * 10; // Adjust the multiplier for more/less spread
-            
-                    const x = j * fontSize + offsetX;
-                    const y = i * fontSize + fontSize + offsetY;
-            
-                    this.context.save();
-                    this.context.translate(x, y);
-                    this.context.rotate(angle);
-                    this.context.fillText(text, -this.context.measureText(text).width / 2, 0);
-                    this.context.restore();
+        document.getElementById(this.CONTAINER_ID).appendChild( this.canvas )
+        
+        setInterval(
+            ((wobj) => {
+                
+                const text = 'no web gpu detected';
+                const fontSize = 300;
+                wobj.context.clearRect(0, 0, wobj.canvas.width, wobj.canvas.height);
+                wobj.context.fillStyle = 'gray';
+                wobj.context.fillRect(0, 0, wobj.canvas.width, wobj.canvas.height);
+    
+                function pseudoRandom(x, y, t) {
+                    // A simple pseudo-random function
+                    return Math.sin(x * 12.9898 + y * 78.233 + t * 0.5) * 43758.5453 % 1;
                 }
-            }
-            
+                
+                for (let i = 0; i < wobj.canvas.height / fontSize; i++) {
+                    for (let j = 0; j < wobj.canvas.width / fontSize; j++) {
+                        const pulse = Math.sin((wobj.step + (i + j) * 100) / 500) * 0.5 + 0.5;
+                        wobj.context.fillStyle = `rgba(255, 0, 0, ${pulse})`;
+                
+                        const angle = (wobj.step / 1000) % (2 * Math.PI);
+                        
+                        // Add deterministic randomness
+                        const offsetX = (pseudoRandom(i, j, wobj.step) - 0.5) * 10; // Adjust the multiplier for more/less spread
+                        const offsetY = (pseudoRandom(i + 1, j + 1, wobj.step) - 0.5) * 10; // Adjust the multiplier for more/less spread
+                
+                        const x = j * fontSize + offsetX;
+                        const y = i * fontSize + fontSize + offsetY;
+                
+                        wobj.context.save();
+                        wobj.context.translate(x, y);
+                        wobj.context.rotate(angle);
+                        wobj.context.fillText(text, -wobj.context.measureText(text).width / 2, 0);
+                        wobj.context.restore();
+                        wobj.step++
+                    }
+                }
+                
+    
+                offsetX += 1;
+                offsetY += 1;
+                if (offsetX > wobj.canvas.width) offsetX = 0;
+                if (offsetY > wobj.canvas.height) offsetY = 0; 
+                
+            })(this), 
+             50 );
 
-            offsetX += 1;
-            offsetY += 1;
-            if (offsetX > this.canvas.width) offsetX = 0;
-            if (offsetY > this.canvas.height) offsetY = 0;
-
-            requestAnimationFrame(drawText);
-        };
-
-        requestAnimationFrame(drawText);
+        //requestAnimationFrame(drawText);
     }
 
     // The loading logic, buckle up
@@ -288,8 +296,9 @@ class EZWG {
  
         // Navigator i guess?
         if (!navigator.gpu) {
-            document.getElementById("ucantplay").classList.remove("hidden");
-            document.getElementById("canvas2hide").classList.add("hidden");
+            // document.getElementById("ucantplay").classList.remove("hidden");
+            // document.getElementById("canvas2hide").classList.add("hidden");
+            this._createNoWebGPUCanvas()
             throw new Error("WebGPU not supported on this browser.");
         }
         else{
@@ -758,15 +767,21 @@ class EZWG {
 		//    this.cellStateArray[i] = Math.random() > 0.66 ? 1 : 0;
 		//}
 		// Add the extra bit of information per cell+
-		 
-        if( this.STARTING_CONFIG === EZWG.ALL_RANDS){
-            this.initTheInitialCellStateAllRand( this.cellStateArray, this.RAND_SEED, this.GRID_SIZE );
+		
+        // If exact buff not specified just generate it based on starting config
+        if(this.STARTING_BUFFER.length !== this.TOTAL_CELLS ){
+            if( this.STARTING_CONFIG === EZWG.ALL_RANDS){
+                this.initTheInitialCellStateAllRand( this.cellStateArray, this.RAND_SEED, this.GRID_SIZE );
+            }
+            else if( this.STARTING_CONFIG === EZWG.ALL_BINS){
+                this.initTheInitialCellStateAllRandBins( this.cellStateArray, this.RAND_SEED, this.GRID_SIZE );
+            }
+            else{//if( this.STARTING_CONFIG === EZWG.ALL_ZERO){
+                this.initTheInitialCellStateAllZeros( this.cellStateArray, this.RAND_SEED, this.GRID_SIZE );
+            }
         }
-        else if( this.STARTING_CONFIG === EZWG.ALL_BINS){
-            this.initTheInitialCellStateAllRandBins( this.cellStateArray, this.RAND_SEED, this.GRID_SIZE );
-        }
-        else{//if( this.STARTING_CONFIG === EZWG.ALL_ZERO){
-            this.initTheInitialCellStateAllZeros( this.cellStateArray, this.RAND_SEED, this.GRID_SIZE );
+        else{
+            this.cellStateArray = this.STARTING_BUFFER
         }
  
 		this.device.queue.writeBuffer( this.cellStateStorage[0], 0, this.cellStateArray );
@@ -826,7 +841,7 @@ class EZWG {
 
     // Do a full pass
     run(){
-        if( !this.READ_BUFFER_BUSY){  
+        if( !this.READ_BUFFER_BUSY && this.device){
 
             let encoder = this.device.createCommandEncoder();
             // Start a compute pass
@@ -944,6 +959,9 @@ class EZWG {
             //https://github.com/gpuweb/gpuweb/issues/4383
             //what da spruce man
 
+        }
+        else if(!this.device){
+            
         }
         else{
             console.log('READ BUFFER BUSY: ', this.READ_BUFFER_BUSY, 'at time index', this.step)
