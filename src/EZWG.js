@@ -22,7 +22,7 @@ class EZWG {
 
         // Define default values
         const defaults = {
-            BUFFER_DATA_TYPE: 'f32',
+            BUFFER_TYPE: 'f32',
             CELL_VALS: 1,
             CHUNK_SIZE: 64,
             CHUNKS_ACROSS: 1,
@@ -44,7 +44,8 @@ class EZWG {
         this.config = { ...defaults, ...config };
  
         // Assign values to instance variables with type checks
-        this.BUFFER_DATA_TYPE = this.config.BUFFER_DATA_TYPE;
+        this.BUFFER_TYPE = this.config.BUFFER_TYPE;
+            this.STORAGE_TYPE = ''+this.BUFFER_TYPE;
         this.CELL_VALS = this._validatePositiveInteger(this.config.CELL_VALS, 'CELL_VALS');
         this.CHUNK_SIZE = this._validatePositiveInteger(this.config.CHUNK_SIZE, 'CHUNK_SIZE');
         this.CHUNKS_ACROSS = this._validatePositiveInteger(this.config.CHUNKS_ACROSS, 'CHUNKS_ACROSS');
@@ -57,7 +58,7 @@ class EZWG {
         this.FRAGMENT_WGSL = this._validateString(this.config.FRAGMENT_WGSL, 'FRAGMENT_WGSL');
         this.READ_BACK_FUNC = this.config.READ_BACK_FUNC;
         this.CELL_SIZE = this._validatePositiveInteger(this.config.CELL_SIZE, 'CELL_SIZE');
-        this.STORAGE = this.config.STORAGE;//this._validateArray(this.BUFFER_DATA_TYPE, this.config.STORAGE, 'STORAGE');
+        this.STORAGE = this.config.STORAGE;//this._validateArray(this.BUFFER_TYPE, this.config.STORAGE, 'STORAGE');
         this.WORKGROUP_SIZE = this._validatePositiveInteger(this.config.WORKGROUP_SIZE, 'WORKGROUP_SIZE');
         this.STARTING_BUFFER = this.config.STARTING_BUFFER;
         //this.STORAGE_SIZE = this._validatePositiveInteger(this.config.STORAGE_SIZE, 'STORAGE_SIZE');
@@ -66,7 +67,7 @@ class EZWG {
  
         // if(this.STORAGE.length < 2){
         //     this.STORAGE; 
-        //     if( this.BUFFER_DATA_TYPE === 'f32' ){
+        //     if( this.BUFFER_TYPE === 'f32' ){
         //         this.STORAGE = new Float32Array( this.STORAGE_SIZE)
         //         if( this.STARTING_CONFIG === EZWG.ALL_RANDS){
         //             this.initTheInitialCellStateAllRand( this.cellStateArray, this.RAND_SEED, this.GRID_SIZE );
@@ -79,7 +80,7 @@ class EZWG {
         //         }
         //     }
         //     // U32 disabled for now but we gotta get back to this
-        //     else if( this.BUFFER_DATA_TYPE === 'u32' && false){
+        //     else if( this.BUFFER_TYPE === 'u32' && false){
         //         this.STORAGE = new Uint32Array( this.STORAGE_SIZE );//[1.0, 1.0, 1.0, 1.0 ]); 
         //     } 
         //     for(let v = 0;v < this.STORAGE.length;v++){ 
@@ -97,7 +98,7 @@ class EZWG {
         //128 x 128
         this.GRID_SIZE = (this.CHUNK_SIZE * this.CHUNKS_ACROSS)
         this.TOTAL_CELLS = this.GRID_SIZE * this.GRID_SIZE 
-        this.UPDATE_INTERVAL = 50
+        this.UPDATE_INTERVAL = 45
 
         this.USER_INPUT_BUFFER_SIZE = 8*8 
 
@@ -466,19 +467,44 @@ class EZWG {
 			};
 
 			@group(0) @binding(0) var<uniform> grid: vec2f;
-			@group(0) @binding(1) var<storage> EZ_STATE_IN: array<f32>; 
-			@group(0) @binding(4) var<storage> EZ_STORAGE: array<f32>;
+			@group(0) @binding(1) var<storage> EZ_STATE_IN: array<${this.BUFFER_TYPE}>; 
+			@group(0) @binding(4) var<storage> EZ_STORAGE: array<${this.STORAGE_TYPE}>;
+
+            // Confines to a chunk location
+            fn EZ_helper_cellIndexChkRel(cell: vec2u, ogcx: u32, ogcy: u32, chk: u32) -> u32 {
+                var nuCellX: u32 = cell.x + (ogcx*chk);
+                var nuCellY: u32 = cell.y + (ogcy*chk);
+				return ((nuCellY+u32(grid.y)) % u32(grid.y)) * u32(grid.x) + ((nuCellX+u32(grid.x)) % u32(grid.x));
+			}
+
+            // Use any X,Y, deltaX, deltaY, attribute
+            fn EZ_CELL_VAL(x: u32, dx: i32, y: u32, dy: i32, att: u32 ) -> ${this.BUFFER_TYPE} {
+                var eex: u32 = u32(( i32(x) + dx) + ${this.CHUNK_SIZE}) % ${this.CHUNK_SIZE};
+                var eey: u32 = u32(( i32(y) + dy) + ${this.CHUNK_SIZE}) % ${this.CHUNK_SIZE};
+                var ocxx: u32 = u32( x / ${this.CHUNK_SIZE} );
+                var ocyy: u32 = u32( y / ${this.CHUNK_SIZE} );
+				return EZ_STATE_IN[ att * u32( grid.x * grid.y ) + EZ_helper_cellIndexChkRel( vec2( eex, eey ), ocxx, ocyy, ${this.CHUNK_SIZE}u )  ];
+			}
+
+            
+            fn EZ_RAND( seed: u32 ) -> f32 {
+                let a: u32 = 1664525u;
+                var c: u32 = 1013904223u;
+                c = a * seed + c;
+                return f32(c & 0x00FFFFFFu)  / f32(0x01000000u);
+            }
 
 			@vertex
 			fn vertexMain(@location(0) position: vec2f, @builtin(instance_index) EZ_INSTANCE: u32) -> VertexOutput {
 				var EZ_OUTPUT: VertexOutput;
                 
-				// let corrected_instance = f32(instance);
 				let i = f32(EZ_INSTANCE);
-                let EZ_PARTS_ACROSS_F: f32 = `+ this.PARTS_ACROSS+`f;
-                let caWu: u32 = `+this.PARTS_ACROSS+`u;
+                let EZ_PARTS_ACROSS_F: f32 = ${this.PARTS_ACROSS}f;
+                let caWu: u32 = ${this.PARTS_ACROSS}u;
 
-                let EZ_CHUNK_SIZE: u32 = `+this.CHUNK_SIZE+`u;
+                const EZ_CELL_VALS: u32 = ${this.CELL_VALS}u;
+                const CHUNKS_ACROSS: u32 = ${this.CHUNKS_ACROSS}u;
+                const EZ_CHUNK_SIZE: u32 = ${this.CHUNK_SIZE}u;
                 let EZ_CELLS_ACROSS_X: u32 = u32( grid.x );
                 let EZ_CELLS_ACROSS_Y: u32 = u32( grid.y );
                 let EZ_TOTAL_CELLS = EZ_CELLS_ACROSS_X * EZ_CELLS_ACROSS_Y;
@@ -491,6 +517,16 @@ class EZWG {
                 var EZX: u32 = EZ_RAW_COL / caWu;
                 var EZY: u32 = EZ_RAW_ROW / caWu;
                 var EZ_CELL_IND: u32 = EZX + ( EZY * EZ_CELLS_ACROSS_X);
+
+                var EZ_CHUNK_X: u32 = EZX / EZ_CHUNK_SIZE;
+                var EZ_CHUNK_Y: u32 = EZY / EZ_CHUNK_SIZE;
+                var EZ_CHUNK_IND: u32 = (EZ_CHUNK_X  + EZ_CHUNK_Y * CHUNKS_ACROSS);
+                
+                // Cell coordinates relative to their respective chunk
+                let EZX_R = EZX % EZ_CHUNK_SIZE;
+                let EZY_R = EZY % EZ_CHUNK_SIZE;
+
+                //--------------------------------------------------------- Extra values for drawing
 
                 // Component metas
                 var EZ_COMP_X: u32 = EZ_RAW_COL % caWu;
@@ -513,20 +549,12 @@ class EZWG {
 				EZ_OUTPUT.position = vec4f(EZ_h_pos, 0, 1);
 				EZ_OUTPUT.cell = EZ_CELL / (grid*1);
 				
-                //--------------------------------------------------------- Newly added to sort
-                const EZ_CELL_VALS: u32 = `+this.CELL_VALS+`u;
-                const CHUNKS_ACROSS: u32 = `+this.CHUNKS_ACROSS+`u;
 
-                const EZ_cellParts: u32 = `+this.PARTS_ACROSS+`u; 
+                const EZ_cellParts: u32 = ${this.PARTS_ACROSS}u; 
                 
-                var EZ_CHUNK_X: u32 = u32( EZ_RAW_COL/caWu ) / EZ_CHUNK_SIZE;
-                var EZ_CHUNK_Y: u32 = u32( EZ_RAW_ROW/caWu ) / EZ_CHUNK_SIZE;
-    
-                var EZ_REBUILT_INSTANCE: u32 = u32(EZ_CELL.x) + u32(EZ_CELL.y) * u32(grid.y);
                 
-                var EZ_CHUNK_IND: u32 = (EZ_CHUNK_X  + EZ_CHUNK_Y * CHUNKS_ACROSS);
 
-                ` + this.FRAGMENT_WGSL + `
+                ${this.FRAGMENT_WGSL}
 				
 
 				return EZ_OUTPUT;
@@ -587,27 +615,39 @@ class EZWG {
         let simulationWSGLCode = `
 			@group(0) @binding(0) var<uniform> grid: vec2f;
 
-			@group(0) @binding(1) var<storage> EZ_STATE_IN: array<f32>;
-			@group(0) @binding(2) var<storage, read_write> EZ_STATE_OUT: array<f32>;
+			@group(0) @binding(1) var<storage> EZ_STATE_IN: array<${this.BUFFER_TYPE}>;
+			@group(0) @binding(2) var<storage, read_write> EZ_STATE_OUT: array<${this.BUFFER_TYPE}>;
 			@group(0) @binding(3) var<storage, read_write> EZ_USER_INPUT: array<f32>;
-			@group(0) @binding(4) var<storage> EZ_STORAGE: array<f32>;
+			@group(0) @binding(4) var<storage> EZ_STORAGE: array<${this.STORAGE_TYPE}>;
 
             // Confines to entire grid space
-			fn EZ_helper_cellIndex(cell: vec2u) -> u32 {
-				return ((cell.y+u32(grid.y)) % u32(grid.y)) * u32(grid.x) + ((cell.x+u32(grid.x)) % u32(grid.x));
-			} 
+			// fn EZ_helper_cellIndex(cell: vec2u) -> u32 {
+			// 	return ((cell.y+u32(grid.y)) % u32(grid.y)) * u32(grid.x) + ((cell.x+u32(grid.x)) % u32(grid.x));
+			// }
 
             // Confines to a chunk location
             fn EZ_helper_cellIndexChkRel(cell: vec2u, ogcx: u32, ogcy: u32, chk: u32) -> u32 {
                 var nuCellX: u32 = cell.x + (ogcx*chk);
-                var nuCellY: u32 = cell.y + (ogcy*chk); 
-				return ((nuCellY+u32(grid.y)) % u32(grid.y)) * u32(grid.x) + ((nuCellX+u32(grid.x)) % u32(grid.x));   
+                var nuCellY: u32 = cell.y + (ogcy*chk);
+				return ((nuCellY+u32(grid.y)) % u32(grid.y)) * u32(grid.x) + ((nuCellX+u32(grid.x)) % u32(grid.x));
 			}
 
-            // Use any X,Y, attribute locations, and chunk coordinates
-            fn EZ_GET_CELL(x: u32, y: u32, att: u32, ocx: u32, ocy: u32 ) -> f32 {
-				return EZ_STATE_IN[ att * u32( grid.x * grid.y ) + EZ_helper_cellIndexChkRel( vec2( (x+`+this.CHUNK_SIZE+`u)%`+this.CHUNK_SIZE+`u,(y+`+this.CHUNK_SIZE+`u)%`+this.CHUNK_SIZE+`u ), ocx, ocy, `+this.CHUNK_SIZE+`u )  ];
+            // Use any X,Y, deltaX, deltaY, attribute
+            fn EZ_CELL_VAL(x: u32, dx: i32, y: u32, dy: i32, att: u32 ) -> ${this.BUFFER_TYPE} {
+                var ocxx: u32 = u32( x / ${this.CHUNK_SIZE} );
+                var ocyy: u32 = u32( y / ${this.CHUNK_SIZE} );
+                var eex: u32 = u32( (i32(x)+dx+i32(${this.CHUNK_SIZE})) ) % ${this.CHUNK_SIZE};
+                var eey: u32 = u32( (i32(y)+dy+i32(${this.CHUNK_SIZE})) ) % ${this.CHUNK_SIZE};
+                eex = eex + (ocxx*${this.CHUNK_SIZE});
+                eey = eey + (ocyy*${this.CHUNK_SIZE});
+
+				return EZ_STATE_IN[ (att * ${this.TOTAL_CELLS}) + eex + (eey*${this.GRID_SIZE})];//EZ_helper_cellIndexChkRel( vec2( eex, eey ), ocxx, ocyy, ${this.CHUNK_SIZE}u )  ];
 			}
+
+            // This old version still works somehow?
+            // fn EZ_GET_CELL(x: u32, y: u32, att: u32, ocx: u32, ocy: u32 ) -> f32 {
+			// 	  return EZ_STATE_IN[ att * u32( grid.x * grid.y ) + EZ_helper_cellIndexChkRel( vec2( (x+`+this.CHUNK_SIZE+`u)%`+this.CHUNK_SIZE+`u,(y+`+this.CHUNK_SIZE+`u)%`+this.CHUNK_SIZE+`u ), ocx, ocy, `+this.CHUNK_SIZE+`u )  ];
+			// }
             
             fn EZ_RAND( seed: u32 ) -> f32 {
                 let a: u32 = 1664525u;
@@ -619,27 +659,29 @@ class EZWG {
 			@compute @workgroup_size( ${this.WORKGROUP_SIZE}, ${this.WORKGROUP_SIZE} )
 			fn computeMain(@builtin(global_invocation_id) EZ_CELL: vec3u) {
                 
+                const EZ_CELL_VALS: u32  = ${this.CELL_VALS}u;
+                const EZ_CHUNKS_ACROSS: u32 = ${this.CHUNKS_ACROSS}u;
+                const EZ_CHUNK_SIZE: u32 = ${this.CHUNK_SIZE}u;
                 let EZ_CELLS_ACROSS_X: u32 = u32( grid.x );
                 let EZ_CELLS_ACROSS_Y: u32 = u32( grid.y );
                 let EZ_TOTAL_CELLS = EZ_CELLS_ACROSS_X * EZ_CELLS_ACROSS_Y;
   
-                const EZ_CELL_VALS: u32  = `+this.CELL_VALS+`u;
-                const EZ_CHUNK_SIZE: u32 = `+this.CHUNK_SIZE+`u;
-                const EZ_CHUNKS_ACROSS: u32 = `+this.CHUNKS_ACROSS+`u; 
-
                 let EZX = EZ_CELL.x;
-                let EZY = EZ_CELL.y;
-                let EZ_CELL_IND = EZ_helper_cellIndex(EZ_CELL.xy);
+                let EZY = EZ_CELL.y;                                //  old version
+                let EZ_CELL_IND = EZX + ( EZY * EZ_CELLS_ACROSS_X); // EZ_helper_cellIndex(EZ_CELL.xy);
     
                 // Chunk logic
                 var EZ_CHUNK_X: u32 = EZX / EZ_CHUNK_SIZE;
                 var EZ_CHUNK_Y: u32 = EZY / EZ_CHUNK_SIZE;
                 var EZ_CHUNK_IND: u32 = EZ_CHUNK_X + EZ_CHUNK_Y*EZ_CHUNKS_ACROSS;
 
-                ` + this.COMPUTE_WGSL + `
+                // Cell coordinates relative to their respective chunk
+                let EZX_R = EZX % EZ_CHUNK_SIZE;
+                let EZY_R = EZY % EZ_CHUNK_SIZE;
+
+                ${this.COMPUTE_WGSL}
 
 				
-
 			}
 		`;
   
@@ -660,7 +702,17 @@ class EZWG {
 		});
 
 		// Create a uniform buffer that describes the grid.
-		const uniformArray = new Float32Array([ this.GRID_SIZE, this.GRID_SIZE ]);
+		var uniformArray;
+        //if( this.BUFFER_TYPE === 'f32' ){
+        uniformArray = new Float32Array([ this.GRID_SIZE, this.GRID_SIZE ]);
+        //}
+        // else if(this.BUFFER_TYPE === 'u32'){
+        //     //uniformArray = new Uint32Array([ this.GRID_SIZE, this.GRID_SIZE ]);
+        // }
+        // else{
+        //     //throw new Error('Unkjnown buffer_type')
+        // }
+         
 		const uniformBuffer = this.device.createBuffer({
 			label: "Grid Uniforms",
 			size: uniformArray.byteLength,
@@ -689,7 +741,16 @@ class EZWG {
 
 		// Create an array representing the active state of each cell.
 		let dbug_cell_state_buffer_info=false;
-		this.cellStateArray = (new Float32Array( this.TOTAL_CELLS * this.CELL_VALS )).fill(0);
+        
+        if( this.BUFFER_TYPE === 'f32' ){
+            this.cellStateArray = (new Float32Array( this.TOTAL_CELLS * this.CELL_VALS )).fill(0);
+        }
+        else if(this.BUFFER_TYPE === 'u32'){
+            this.cellStateArray = (new Uint32Array( this.TOTAL_CELLS * this.CELL_VALS )).fill(0);
+        }
+        else{
+            throw new Error('Unkjnown BUFFER_TYPE: '+ this.BUFFER_TYPE)
+        }
 		if(dbug_cell_state_buffer_info)console.log('seeed', this.RAND_SEED);
 		if(dbug_cell_state_buffer_info)console.log('this.cellStateArray.byteLength', this.cellStateArray.byteLength);
 		if(dbug_cell_state_buffer_info)console.log('4 bytes times:', this.CELL_VALS );
