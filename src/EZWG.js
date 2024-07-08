@@ -23,6 +23,7 @@ class EZWG {
         // Define default values
         const defaults = {
             BUFFER_TYPE: 'f32',
+            STORAGE_TYPE: 'f32',  // TODO allow overrides for this value
             CELL_VALS: 1,
             CHUNK_SIZE: 64,
             CHUNKS_ACROSS: 1,
@@ -1360,4 +1361,41 @@ class EZWG {
         } 
     }
  
+    static processImagePixels(img, width, height) {
+        // Create a canvas and draw the image
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = width;
+        canvas.height = height;
+        // Draw the image on the canvas
+        ctx.drawImage(img, 0, 0, width, height);
+        // Get the image data
+        const imageData = ctx.getImageData(0, 0, width, height).data;
+        // Initialize an array to hold the packed u32 values
+        const packedPixels = [];
+        // Process each pixel
+        for (let y = height - 1; y >= 0; y--) {
+            for (let x = 0; x < width; x++) {
+                const index = (y * width + x) * 4; // Calculate the index for the RGBA values
+                const r = imageData[index];
+                const g = imageData[index + 1];
+                const b = imageData[index + 2];
+                const a = imageData[index + 3];
+                // Convert RGBA to a u32 number
+                const packedValue = (r << 24) | (g << 16) | (b << 8) | a;
+                // Push the packed value to the array
+                packedPixels.push(packedValue);
+            }
+        }
+        return packedPixels;
+    }
+    
+    static unpackU32(packedValue) {
+        const r = (packedValue >> 24) & 0xFF;
+        const g = (packedValue >> 16) & 0xFF;
+        const b = (packedValue >> 8) & 0xFF;
+        const a = packedValue & 0xFF;
+        return { r, g, b, a };
+    }
+
 } 
