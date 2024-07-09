@@ -36,7 +36,7 @@ class EZWG {
             FRAGMENT_WGSL: '',
             READ_BACK_FUNC: ( currentStep, entireBuffer ) => {},
             CELL_SIZE: 8,
-            STORAGE: (new Float32Array(1)),
+            STORAGE: null,//(new Float32Array(0)),
             WORKGROUP_SIZE: 9,      // normally i leave it at 8 but it causes this weird flashing bug sometimes - could be a WebGPU bug
             STARTING_BUFFER: []     // if it's empty 
         };
@@ -59,10 +59,10 @@ class EZWG {
         this.FRAGMENT_WGSL = this._validateString(this.config.FRAGMENT_WGSL, 'FRAGMENT_WGSL');
         this.READ_BACK_FUNC = this.config.READ_BACK_FUNC;
         this.CELL_SIZE = this._validatePositiveInteger(this.config.CELL_SIZE, 'CELL_SIZE');
-        this.STORAGE = this.config.STORAGE;//this._validateArray(this.BUFFER_TYPE, this.config.STORAGE, 'STORAGE');
+        this.STORAGE = this.config.STORAGE;         //this._validateArray(this.BUFFER_TYPE, this.config.STORAGE, 'STORAGE');
         this.WORKGROUP_SIZE = this._validatePositiveInteger(this.config.WORKGROUP_SIZE, 'WORKGROUP_SIZE');
         this.STARTING_BUFFER = this.config.STARTING_BUFFER;
-        //this.STORAGE_SIZE = this._validatePositiveInteger(this.config.STORAGE_SIZE, 'STORAGE_SIZE');
+        this.STORAGE_SIZE = this.STORAGE ? this.STORAGE.length : 0;     // this._validatePositiveInteger(this.config.STORAGE_SIZE, 'STORAGE_SIZE');
 
         
  
@@ -495,6 +495,18 @@ class EZWG {
                 return f32(c & 0x00FFFFFFu)  / f32(0x01000000u);
             }
 
+            fn EZ_U32_TO_VEC4(value: u32) -> vec4<u32> {
+                // Extract each byte using bitwise operations
+                let byte0: u32 = (value & 0x000000FF);
+                let byte1: u32 = (value >> 8) & 0x000000FF;
+                let byte2: u32 = (value >> 16) & 0x000000FF;
+                let byte3: u32 = (value >> 24) & 0x000000FF;
+            
+                // Return as a vector
+                return vec4<u32>(byte0, byte1, byte2, byte3);
+            }
+            
+
 			@vertex
 			fn vertexMain(@location(0) position: vec2f, @builtin(instance_index) EZ_INSTANCE: u32) -> VertexOutput {
 				var EZ_OUTPUT: VertexOutput;
@@ -802,14 +814,44 @@ class EZWG {
 
 
         // console.log(this.STORAGE)
+
+
+        let finalStorageArray = null;
+
+        // If you specified a storage
+        if( this.STORAGE_SIZE > 0 ){
+            if( this.STORAGE_TYPE === 'f32' ){
+                finalStorageArray = new Float32Array( this.STORAGE );//new Float32Array( this.STORAGE_SIZE );
+                // for(let b = 0;b < this.STORAGE_SIZE;b++){
+                //     finalStorageArray[b] = this.STORAGE[b];
+                // }
+            }
+            else if( this.STORAGE_TYPE === 'u32' ){
+                finalStorageArray = new Uint32Array( this.STORAGE );//new Uint32Array( this.STORAGE_SIZE );
+                // for(let b = 0;b < this.STORAGE_SIZE;b++){
+                //     finalStorageArray[b] = this.STORAGE[b];
+                // }
+            }
+        }
+        else{
+            this.STORAGE_SIZE = 1;
+            if( this.STORAGE_TYPE === 'f32' ){
+                finalStorageArray = new Float32Array( 1 );
+            }
+            else if( this.STORAGE_TYPE === 'u32' ){
+                finalStorageArray = new Uint32Array( 1 );
+            }
+        }
+
+        
         
 		const extraConfigStorage = 
 			this.device.createBuffer({
 				label: "Extra config sotrage",
-				size: this.STORAGE.byteLength,
+				size: finalStorageArray.byteLength,
 				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 			});
-		this.device.queue.writeBuffer( extraConfigStorage, 0, this.STORAGE );
+		this.device.queue.writeBuffer( extraConfigStorage, 0, finalStorageArray );
 
 
         
@@ -1360,6 +1402,17 @@ class EZWG {
 
         } 
     }
+
+    // Use like this:
+    // let sprtA = document.getElementById('exmplSprite1'); 
+    // if (sprtA.complete && sprtA.naturalWidth !== 0) {
+    //     const packedPixels = EZWG.processImagePixels(sprtA, 8, 8);
+    //     console.log(packedPixels);
+    //     packedPixels.forEach((packedValue, index) => {
+    //         const { r, g, b, a } = EZWG.unpackU32(packedValue);
+    //         console.log(`Pixel ${index}: R=${r}, G=${g}, B=${b}, A=${a}`);
+    //     });
+    // } 
  
     static processImagePixels(img, width, height) {
         // Create a canvas and draw the image
@@ -1373,7 +1426,6 @@ class EZWG {
         const imageData = ctx.getImageData(0, 0, width, height).data;
         // Initialize an array to hold the packed u32 values
         const packedPixels = [];
-        // Process each pixel
         for (let y = height - 1; y >= 0; y--) {
             for (let x = 0; x < width; x++) {
                 const index = (y * width + x) * 4; // Calculate the index for the RGBA values
@@ -1397,5 +1449,6 @@ class EZWG {
         const a = packedValue & 0xFF;
         return { r, g, b, a };
     }
+    
 
 } 
