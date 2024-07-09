@@ -1268,10 +1268,10 @@
                     }
                     else{
                         if( EZ_CHUNK_IND == 0u ){
-                            var vecc: vec4<u32> = EZ_U32_TO_VEC4( EZ_STORAGE[ 64 + EZ_COMP_IND ] );
-                            rrr = f32(vecc.x) / 255.0f;
-                            ggg = f32(vecc.y) / 255.0f;
-                            bbb = f32(vecc.z) / 255.0f;
+                            var vecc: vec4<u32> = EZ_U32_TO_VEC4( EZ_STORAGE[ 0 + EZ_COMP_IND ] );
+                            rrr = f32(vecc.w) / 255.0f;
+                            ggg = f32(vecc.z) / 255.0f;
+                            bbb = f32(vecc.y) / 255.0f;
                         }
                         else{
                             rrr = 1;
