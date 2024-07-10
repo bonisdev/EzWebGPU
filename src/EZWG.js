@@ -23,7 +23,7 @@ class EZWG {
         // Define default values
         const defaults = {
             BUFFER_TYPE: 'f32',
-            STORAGE_TYPE: 'f32',  // TODO allow overrides for this value
+            STORAGE_TYPE: 'f32',
             CELL_VALS: 1,
             CHUNK_SIZE: 64,
             CHUNKS_ACROSS: 1,
@@ -40,13 +40,17 @@ class EZWG {
             WORKGROUP_SIZE: 9,      // normally i leave it at 8 but it causes this weird flashing bug sometimes - could be a WebGPU bug
             STARTING_BUFFER: []     // if it's empty 
         };
+
+        // Overrider 
  
         // Merge defaults with the provided config
         this.config = { ...defaults, ...config };
  
         // Assign values to instance variables with type checks
         this.BUFFER_TYPE = this.config.BUFFER_TYPE;
-            this.STORAGE_TYPE = ''+this.BUFFER_TYPE;
+        this.STORAGE_TYPE = this.config.STORAGE_TYPE;
+        // this.STORAGE_TYPE = ''+this.BUFFER_TYPE;
+
         this.CELL_VALS = this._validatePositiveInteger(this.config.CELL_VALS, 'CELL_VALS');
         this.CHUNK_SIZE = this._validatePositiveInteger(this.config.CHUNK_SIZE, 'CHUNK_SIZE');
         this.CHUNKS_ACROSS = this._validatePositiveInteger(this.config.CHUNKS_ACROSS, 'CHUNKS_ACROSS');

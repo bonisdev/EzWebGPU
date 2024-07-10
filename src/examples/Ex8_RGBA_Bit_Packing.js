@@ -109,6 +109,7 @@ var Ex8_RGBA_Bit_Packing = () => {
         STORAGE: packedPixels,
 
         BUFFER_TYPE: 'u32',
+        STORAGE_TYPE: 'u32',
 
         CONTAINER_ID:   'demoCanvasContainer',    // DOM id to insdert canvas to
         RAND_SEED:      'randomseed12345678910', 

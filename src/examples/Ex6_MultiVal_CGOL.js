@@ -73,9 +73,9 @@ var Ex6_MultiVal_CGOL = () => {
                 totalTypesLive = totalTypesLive - 1;
             }
             else{ 
-                rrr += EZ_RAND(EZ_STORAGE[ drawingWeightsOffset + 0 ]);//+ EZ_CHUNK_X + EZ_CHUNK_Y + cellVal);
-                ggg += EZ_RAND(EZ_STORAGE[ drawingWeightsOffset + 1 ]);//+ EZ_CHUNK_X + EZ_CHUNK_Y + cellVal);
-                bbb += EZ_RAND(EZ_STORAGE[ drawingWeightsOffset + 2 ]);//+ EZ_CHUNK_X + EZ_CHUNK_Y + cellVal); 
+                rrr += EZ_RAND(u32(34*EZ_STORAGE[ drawingWeightsOffset + 0 ]));//+ EZ_CHUNK_X + EZ_CHUNK_Y + cellVal);
+                ggg += EZ_RAND(u32(34*EZ_STORAGE[ drawingWeightsOffset + 1 ]));//+ EZ_CHUNK_X + EZ_CHUNK_Y + cellVal);
+                bbb += EZ_RAND(u32(34*EZ_STORAGE[ drawingWeightsOffset + 2 ]));//+ EZ_CHUNK_X + EZ_CHUNK_Y + cellVal); 
             }
             valIndex++;
         }
@@ -107,6 +107,8 @@ var Ex6_MultiVal_CGOL = () => {
     let config = {
 
         BUFFER_TYPE: 'u32',
+        STORAGE_TYPE: 'f32',
+
         CELL_VALS: 5,   // Now this means 17 f32 values per cell
         CELL_SIZE: 4,
         CHUNK_SIZE: 32,
