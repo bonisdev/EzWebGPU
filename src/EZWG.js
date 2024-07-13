@@ -1416,7 +1416,16 @@ class EZWG {
     //         const { r, g, b, a } = EZWG.unpackU32(packedValue);
     //         console.log(`Pixel ${index}: R=${r}, G=${g}, B=${b}, A=${a}`);
     //     });
-    // } 
+    // }
+
+    static randomU32(zeroToOne) {
+        // Ensure the input is between 0 and 1
+        if (zeroToOne < 0 || zeroToOne > 1) {
+            throw new Error("Input must be a float between 0 and 1");
+        }
+        // Scale the float to the range of a 32-bit unsigned integer
+        return Math.floor(zeroToOne * 0xFFFFFFFF);
+    }
  
     static processImagePixels(img, width, height) {
         // Create a canvas and draw the image
@@ -1438,7 +1447,7 @@ class EZWG {
                 const b = imageData[index + 2];
                 const a = imageData[index + 3];
                 // Convert RGBA to a u32 number
-                const packedValue = (r << 24) | (g << 16) | (b << 8) | a;
+                const packedValue = (a << 24) | (b << 16) | (g << 8) | r;
                 // Push the packed value to the array
                 packedPixels.push(packedValue);
             }
@@ -1447,10 +1456,10 @@ class EZWG {
     }
     
     static unpackU32(packedValue) {
-        const r = (packedValue >> 24) & 0xFF;
-        const g = (packedValue >> 16) & 0xFF;
-        const b = (packedValue >> 8) & 0xFF;
-        const a = packedValue & 0xFF;
+        const a = (packedValue >> 24) & 0xFF;
+        const b = (packedValue >> 16) & 0xFF;
+        const g = (packedValue >> 8) & 0xFF;
+        const r = packedValue & 0xFF;
         return { r, g, b, a };
     }
     

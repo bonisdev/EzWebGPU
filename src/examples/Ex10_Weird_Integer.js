@@ -1,4 +1,4 @@
-var Ex9_IntegerCA = () => {
+var Ex10_RealWeirdIntegerCA = () => {
     // First load in the sprites to use
     document.getElementById('extraTitle').innerHTML = 
     `
@@ -60,9 +60,9 @@ var Ex9_IntegerCA = () => {
         else{
             if( EZ_CHUNK_IND == 0u ){
                 var vecc: vec4<u32> = EZ_U32_TO_VEC4( EZ_STORAGE[ 0 + EZ_COMP_IND ] );
-                rrr = f32(vecc.w) / 255.0f;
-                ggg = f32(vecc.z) / 255.0f;
-                bbb = f32(vecc.y) / 255.0f;
+                rrr = f32(vecc.x) / 255.0f;
+                ggg = f32(vecc.y) / 255.0f;
+                bbb = f32(vecc.z) / 255.0f;
             }
             else{
                 rrr = 1;
@@ -76,35 +76,29 @@ var Ex9_IntegerCA = () => {
         EZ_OUTPUT.blu = bbb; 
     `;
 
+ 
+    let seeed = 'test seed 1234' + Date.now()
+    console.log('using seed:', seeed)
 
-    // Convert the images to their U32 arrays 
-    let sprtA = document.getElementById('exmplSprite1');
-    // Ensure the image is fully loaded
-    if (sprtA.complete && sprtA.naturalWidth !== 0) {
-        const packedPixels = EZWG.processImagePixels(sprtA, 8, 8);
-        // console.log(packedPixels);
-        packedPixels.forEach((packedValue, index) => {
-            const { r, g, b, a } = EZWG.unpackU32(packedValue);
-            console.log(`Pixel ${index}: R=${r}, G=${g}, B=${b}, A=${a}`);
-        });
-    } 
-    else {
-        console.error('Image failed to load or is not accessible.');
-    }
+    EZWG.SHA1.seed(seeed);
 
-    let packedPixels = 
-        EZWG.processImagePixels(document.getElementById('exmplSprite1'), 8, 8).concat(
-            EZWG.processImagePixels(document.getElementById('exmplSprite2'), 8, 8)
-        ); 
-
+    let squarePerCell = 4
+    let numberOfOperationsPerStep = 6
     
+    let randomMasks = new Array( numberOfOperationsPerStep * squarePerCell);
+    for(let kk = 0;kk < randomMasks.length;kk++){
+        randomMasks[kk] = EZWG.randomU32( EZWG.SHA1.random() )
+    }
     // Usage example
     let config = {
 
         CELL_SIZE: 8,
-        CHUNK_SIZE: 25,
+        CHUNK_SIZE: 32,
         CHUNKS_ACROSS: 2,
-        PARTS_ACROSS: 8,
+        PARTS_ACROSS: Math.floor( squarePerCell / 2 ),
+
+        CELL_VALS: 4,// 3 U32 values per cell, gonna use the first 255 of each cell as
+                    // the RGB for the cell respectively
 
         STORAGE: packedPixels,
 

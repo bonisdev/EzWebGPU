@@ -1,4 +1,4 @@
-var Ex8_RGBA_Bit_Packing = () => {
+var Ex9_Stimmings2 = () => {
     // First load in the sprites to use
     document.getElementById('extraTitle').innerHTML = 
     `
@@ -98,12 +98,13 @@ var Ex8_RGBA_Bit_Packing = () => {
         ); 
 
     
+    let squareSide = Math.min(window.innerWidth, window.innerHeight)
     // Usage example
     let config = {
 
         CELL_SIZE: 8,
-        CHUNK_SIZE: 25,
-        CHUNKS_ACROSS: 2,
+        CHUNK_SIZE: Math.floor(squareSide/8),
+        CHUNKS_ACROSS: 1,
         PARTS_ACROSS: 8,
 
         STORAGE: packedPixels,
