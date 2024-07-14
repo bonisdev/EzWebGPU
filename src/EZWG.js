@@ -891,6 +891,9 @@ class EZWG {
         else{
             this.cellStateArray = this.STARTING_BUFFER
         }
+
+        console.log('starting with : ')
+        console.log( this.cellStateArray )
  
 		this.device.queue.writeBuffer( this.cellStateStorage[0], 0, this.cellStateArray );
 
@@ -1041,14 +1044,24 @@ class EZWG {
                     let remaped = this.cellStateStorageForRead.getMappedRange( 0, this.cellStateArray.byteLength );
                     let arrayBufferToAnalyse = remaped.slice(0);
                     //let theUi8 = new Uint8Array( dudata );
+
+                    if(this.BUFFER_TYPE ==='f32'){
+                        let float32ArrayBuffer = new Float32Array(arrayBufferToAnalyse); 
+
+                        //console.log(float32ArrayBuffer)
+                        //goThroughF32ValsAndReprint( float32ArrayBuffer, this );
+                        this.READ_BACK_FUNC( this.step, float32ArrayBuffer )
+    
+                        this.cellStateStorageForRead.unmap();
+                    }
+                    else if(this.BUFFER_TYPE === 'u32'){
+                        let uint32ArrayBuffer = new Uint32Array(arrayBufferToAnalyse);  
+                        this.READ_BACK_FUNC( this.step, uint32ArrayBuffer )
+    
+                        this.cellStateStorageForRead.unmap();
+                    }
                     
-                    let float32ArrayBuffer = new Float32Array(arrayBufferToAnalyse); 
-
-                    //console.log(float32ArrayBuffer)
-                    //goThroughF32ValsAndReprint( float32ArrayBuffer, this );
-                    this.READ_BACK_FUNC( this.step, float32ArrayBuffer )
-
-                    this.cellStateStorageForRead.unmap();
+                    
                     this.READ_BUFFER_BUSY = false;
                 }).catch( error => {
                     console.log('errrr mapping ', error);
@@ -1162,9 +1175,17 @@ class EZWG {
         let daBigONe = this.CHUNKS_ACROSS * this.CHUNKS_ACROSS * this.CHUNK_SIZE * this.CHUNK_SIZE
         for(let ii = 0;ii < daBigONe;ii++){ 
             for(let c = 0;c < this.CELL_VALS;c++){
-                cellStateArray[
-                    ii + c*(grid_size*grid_size)
-                ] =  EZWG.SHA1.random();
+                if( this.BUFFER_TYPE === 'f32' ){
+                    cellStateArray[
+                        ii + c*(grid_size*grid_size)
+                    ] =  EZWG.SHA1.random();
+                }
+                else if( this.BUFFER_TYPE === 'u32' ){
+                    cellStateArray[
+                        ii + c*(grid_size*grid_size)
+                    ] =  EZWG.randomU32( EZWG.SHA1.random() );
+                }
+                
             } 
         }
     }
