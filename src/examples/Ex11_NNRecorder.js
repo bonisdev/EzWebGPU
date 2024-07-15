@@ -7,7 +7,7 @@ var Ex11_NNRecorder = () => {
         let cellAttribute: u32 = 0u;
 
         
-        var neighbourCount: u32 = 0u;
+        var neighbourCount: f32 = 0f;
 
         // Explanation of the EX_CELL_VAL function call:
         //      get the surroduning 8 neighbours (from the chunk that
@@ -23,13 +23,13 @@ var Ex11_NNRecorder = () => {
         neighbourCount += EZ_CELL_VAL( EZX, -1, EZY,  1, cellAttribute );
         neighbourCount += EZ_CELL_VAL( EZX, 0,  EZY,  1, cellAttribute );
 
-        var myState: u32 = EZ_STATE_IN[ EZ_CELL_IND ];
+        var myState: f32 = EZ_STATE_IN[ EZ_CELL_IND ];
         
-        if (myState == 1u && (neighbourCount < 2u || neighbourCount > 3u)) {
-            EZ_STATE_OUT[ EZ_CELL_IND ] = 0u;
+        if (myState == 1f && (neighbourCount < 2f || neighbourCount > 3f)) {
+            EZ_STATE_OUT[ EZ_CELL_IND ] = 0f;
         }
-        else if (myState == 0 && neighbourCount == 3u) {
-            EZ_STATE_OUT[ EZ_CELL_IND ] = 1u;
+        else if (myState == 0f && neighbourCount == 3f) {
+            EZ_STATE_OUT[ EZ_CELL_IND ] = 1f;
         }
         else {
             EZ_STATE_OUT[ EZ_CELL_IND ] = myState;
@@ -43,7 +43,7 @@ var Ex11_NNRecorder = () => {
         var bbb: f32 = 0;
         
         let cellAttIndex: u32 = 0u;
-        var cellVal: u32 = EZ_CELL_VAL( EZX, 0, EZY, 0, cellAttIndex );
+        var cellVal: f32 = EZ_CELL_VAL( EZX, 0, EZY, 0, cellAttIndex );
         //      EZ_STATE_IN[ EZ_CELL_IND + (0u) * EZ_TOTAL_CELLS ];
 
         if( cellVal == 0 ){
@@ -86,7 +86,7 @@ var Ex11_NNRecorder = () => {
 
         CONTAINER_ID:   'demoCanvasContainer',    // DOM id to insdert canvas to
         RAND_SEED:      'randomseed12345678910', 
-        STARTING_CONFIG: EZWG.ALL_BINS,      // couldve been EZWG.ALL_ZERO
+        STARTING_CONFIG: EZWG.ALL_RANDS,      // couldve been EZWG.ALL_ZERO
         COMPUTE_WGSL: `
             // The custom WGSL code goes here
             ${computeWGSL}
