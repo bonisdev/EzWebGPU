@@ -1,4 +1,19 @@
 var Ex11_NNRecorder = () => {
+	
+	// Get the # of weights of an NN 
+	let juiceTypes = 5;
+	// Weights for single neighbour input:
+	let totalWsNnOne = (juiceTypes*juiceTypes) + (1*juiceTypes);
+    // An Extra buffer of random f32's 0-1 to get a variety of colours
+    let randomConwayRGBs = new Float32Array( 256 );
+	//
+    EZWG.SHA1.seed('test seed 1234' + Date.now());
+    for(let b = 0;b < randomConwayRGBs.length;b++){ 
+        
+        randomConwayRGBs[b] = EZWG.SHA1.random()
+    }
+	
+	
     let computeWGSL = 
     `
         // This value is used as an index to get the right attribute
@@ -7,6 +22,9 @@ var Ex11_NNRecorder = () => {
         let cellAttribute: u32 = 0u;
 
         
+		// Store the summation of each neighbour
+        var neighbrs: array< f32, EZ_CELL_VALS >;
+		
         var neighbourCount: f32 = 0f;
 
         // Explanation of the EX_CELL_VAL function call:
@@ -62,20 +80,15 @@ var Ex11_NNRecorder = () => {
         EZ_OUTPUT.blu = bbb; 
     `;
 
-    // An Extra buffer of random f32's 0-1 to get a variety of colours
-    let randomConwayRGBs = new Float32Array( 256 );
-    EZWG.SHA1.seed('test seed 1234' + Date.now());
-    for(let b = 0;b < randomConwayRGBs.length;b++){ 
-        
-        randomConwayRGBs[b] = EZWG.SHA1.random()
-    }
+	
 
-    document.getElementById('extraTitle').innerHTML = '<span style="color: red;">*** </span> Check the console.log for the GPU buffer every 100 steps'
+    document.getElementById('extraTitle').innerHTML = '<span style="color: red;">*** </span> nn weight coutn: ....'
 
     // Usage example
     let config = {
 
         BUFFER_TYPE: 'f32',
+		CELL_VALS: juiceTypes,
         CELL_SIZE: 5,
         CHUNK_SIZE: 32,
         CHUNKS_ACROSS: 3,

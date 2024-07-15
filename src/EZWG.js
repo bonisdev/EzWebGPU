@@ -38,7 +38,7 @@ class EZWG {
             CELL_SIZE: 8,
             STORAGE: null,//(new Float32Array(0)),
             WORKGROUP_SIZE: 5,      // normally i leave it at 8 but it causes this weird flashing bug sometimes - could be a WebGPU bug
-            STARTING_BUFFER: []     // if it's empty 
+            STARTING_BUFFER: []     // if it's empty it will make a default random or all zeros or something
         };
 
         // Overrider 
@@ -897,7 +897,7 @@ class EZWG {
 		// Add the extra bit of information per cell+
 		
         // If exact buff not specified just generate it based on starting config
-        if(this.STARTING_BUFFER.length !== this.TOTAL_CELLS ){
+        if(this.STARTING_BUFFER.length !== this.TOTAL_CELLS*this.CELL_VALS ){
             if( this.STARTING_CONFIG === EZWG.ALL_RANDS){
                 this.initTheInitialCellStateAllRand( this.cellStateArray, this.RAND_SEED, this.GRID_SIZE );
             }
@@ -909,6 +909,8 @@ class EZWG {
             }
         }
         else{
+            // console.log('yes using the repbuilt guy:')
+            // console.log(this.STARTING_BUFFER)
             this.cellStateArray = this.STARTING_BUFFER
         }
 
@@ -1474,6 +1476,19 @@ class EZWG {
         const ctx = canvas.getContext('2d');
         canvas.width = width;
         canvas.height = height;
+
+        // Disable image smoothing to maintain pixel-perfect quality
+        ctx.imageSmoothingEnabled = false;
+        ctx.mozImageSmoothingEnabled = false;
+        ctx.webkitImageSmoothingEnabled = false;
+        ctx.msImageSmoothingEnabled = false;
+
+        // Set the image element properties to ensure pixel-perfect rendering
+        img.style.imageRendering = 'pixelated';
+        img.style.imageRendering = 'crisp-edges'; // for some browsers
+        img.width = width;  // set the display width
+        img.height = height; // set the display height
+
         // Draw the image on the canvas
         ctx.drawImage(img, 0, 0, width, height);
         // Get the image data

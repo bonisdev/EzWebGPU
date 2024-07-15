@@ -65,6 +65,12 @@
             -ms-user-select: none; /* Internet Explorer/Edge */
             -webkit-user-drag: none;
         }
+        .pixel-perfect {
+            image-rendering: pixelated;
+            image-rendering: crisp-edges; /* for some browsers */
+            width: 8px;  /* or the actual width of your image */
+            height: 8px; /* or the actual height of your image */
+        }
 
 
 
@@ -234,8 +240,8 @@
             <h1><span style="color: aqua;padding-left: 2px;border-left: 4px solid rgb(234, 31, 31);">EZ</span><span style="color: #0093FF;border-bottom: 4px solid rgb(31, 200, 28);">Web</span><span style="color: #0093FF;border-top: 4px solid rgb(236, 218, 21);">GPU</span><span style="color: aliceblue;border-right: 4px solid rgb(244, 117, 14);padding-right: 2px;">.js</span></h1>
         </div> 
         
-        <img id="exmplSprite1" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAAEnQAABJ0Ad5mH3gAAAA9SURBVBhXY3gro4IVgST+n+RDQwgJe48zQKS00QeI0CUWey4BInQJIB8iAVSBLgFEEANRJNAQVAILklEBAIeXWpHGiEGRAAAAAElFTkSuQmCC">
-        <img id="exmplSprite2" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAAEnQAABJ0Ad5mH3gAAABaSURBVChTYxR6fPs/Ax4AVvAuWAzKRQVCa18xsEDZDAcancC07PQGMK38wg5MM4FJKJjzX4OhPmMFlAcBcAUwnSDwOBPBRjGhcUYEQwrjDSgPAgg6koA3GRgAbLgeS0ZyABsAAAAASUVORK5CYII=">
+        <img id="exmplSprite1" class="pixel-perfect" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAAEnQAABJ0Ad5mH3gAAAA9SURBVBhXY3gro4IVgST+n+RDQwgJe48zQKS00QeI0CUWey4BInQJIB8iAVSBLgFEEANRJNAQVAILklEBAIeXWpHGiEGRAAAAAElFTkSuQmCC">
+        <img id="exmplSprite2" class="pixel-perfect" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAAEnQAABJ0Ad5mH3gAAABaSURBVChTYxR6fPs/Ax4AVvAuWAzKRQVCa18xsEDZDAcancC07PQGMK38wg5MM4FJKJjzX4OhPmMFlAcBcAUwnSDwOBPBRjGhcUYEQwrjDSgPAgg6koA3GRgAbLgeS0ZyABsAAAAASUVORK5CYII=">
             
         <div style="max-width: 70%;">
             <p>EzWebGPU is a wrapper for <a href="https://www.w3.org/TR/webgpu/">WebGPU</a> which handles setting up a read and write buffer pair to quickly write, deploy, and visually debug compute shaders very painlessly.  You can quickly setup cellular automata simulations and get <span style="color: rgb(241, 92, 179);font-style: bold;">TRILLIONS</span> of FLOPS all in the browser.  See on: <a href="https://github.com/bonisdev">GitHub</a></p>

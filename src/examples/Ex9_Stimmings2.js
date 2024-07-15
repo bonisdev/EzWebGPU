@@ -10,7 +10,7 @@ var Ex9_Stimmings2 = () => {
         // This value is used as an index to get the right attribute
         // in the cell (we're only going to define a size of 1 for 
         //  this CGOL example)
-        let cellAttribute: u32 = 0u;
+        var cellAttribute: u32 = 0u;
 
         
         var neighbourCount: u32 = 0u;
@@ -19,27 +19,22 @@ var Ex9_Stimmings2 = () => {
         //      get the surroduning 8 neighbours (from the chunk that
         //      EZX and EZY is in), get the offset by 1 or -1, and at
         //      that cell's value stored at index "cellAttribute"
-        neighbourCount += EZ_CELL_VAL( EZX, 1, EZY,  1, cellAttribute );
-        neighbourCount += EZ_CELL_VAL( EZX, 1, EZY,  0, cellAttribute );
-        neighbourCount += EZ_CELL_VAL( EZX, 1, EZY, -1, cellAttribute );
-        neighbourCount += EZ_CELL_VAL( EZX, 0, EZY, -1, cellAttribute );
+        // neighbourCount += EZ_CELL_VAL( EZX, 1, EZY,  1, cellAttribute );
+        // neighbourCount += EZ_CELL_VAL( EZX, 1, EZY,  0, cellAttribute );
+        // neighbourCount += EZ_CELL_VAL( EZX, 1, EZY, -1, cellAttribute );
+        // neighbourCount += EZ_CELL_VAL( EZX, 0, EZY, -1, cellAttribute );
         
-        neighbourCount += EZ_CELL_VAL( EZX, -1, EZY, -1, cellAttribute );
-        neighbourCount += EZ_CELL_VAL( EZX, -1, EZY,  0, cellAttribute );
-        neighbourCount += EZ_CELL_VAL( EZX, -1, EZY,  1, cellAttribute );
-        neighbourCount += EZ_CELL_VAL( EZX, 0,  EZY,  1, cellAttribute );
+        // neighbourCount += EZ_CELL_VAL( EZX, -1, EZY, -1, cellAttribute );
+        // neighbourCount += EZ_CELL_VAL( EZX, -1, EZY,  0, cellAttribute );
+        // neighbourCount += EZ_CELL_VAL( EZX, -1, EZY,  1, cellAttribute );
+        // neighbourCount += EZ_CELL_VAL( EZX,  0, EZY,  1, cellAttribute );
 
-        var myState: u32 = EZ_STATE_IN[ EZ_CELL_IND ];
-        
-        if (myState == 1u && (neighbourCount < 2u || neighbourCount > 3u)) {
-            EZ_STATE_OUT[ EZ_CELL_IND ] = 0u;
-        }
-        else if (myState == 0 && neighbourCount == 3u) {
-            EZ_STATE_OUT[ EZ_CELL_IND ] = 1u;
-        }
-        else {
-            EZ_STATE_OUT[ EZ_CELL_IND ] = myState;
-        }
+        loop{ 
+            if cellAttribute >= EZ_CELL_VALS { break; }
+
+            EZ_STATE_OUT[ EZ_CELL_IND + EZ_TOTAL_CELLS*cellAttribute ] = EZ_CELL_VAL( EZX, 0, EZY, 0, cellAttribute );
+            cellAttribute = cellAttribute + 1;
+        } 
     `;
 
     let fragmentWGSL = 
@@ -49,26 +44,19 @@ var Ex9_Stimmings2 = () => {
         var bbb: f32 = 0;
         
         let cellAttIndex: u32 = 0u;
-        var cellVal: u32 = EZ_CELL_VAL( EZX, 0, EZY, 0, cellAttIndex );
+        var entityType: u32 = EZ_CELL_VAL( EZX, 0, EZY, 0, cellAttIndex );
         //      EZ_STATE_IN[ EZ_CELL_IND + (0u) * EZ_TOTAL_CELLS ];
 
-        if( cellVal == 0 ){
+        if( entityType > 0 ){
+            var vecc: vec4<u32> = EZ_U32_TO_VEC4( EZ_STORAGE[ (64*(entityType-1u)) + EZ_COMP_IND ] );
+            rrr = f32(vecc.x) / 255.0f;
+            ggg = f32(vecc.y) / 255.0f;
+            bbb = f32(vecc.z) / 255.0f;
+        }
+        else{
             rrr = 0;
             ggg = 0;
             bbb = 0;
-        }
-        else{
-            if( EZ_CHUNK_IND == 0u ){
-                var vecc: vec4<u32> = EZ_U32_TO_VEC4( EZ_STORAGE[ 0 + EZ_COMP_IND ] );
-                rrr = f32(vecc.x) / 255.0f;
-                ggg = f32(vecc.y) / 255.0f;
-                bbb = f32(vecc.z) / 255.0f;
-            }
-            else{
-                rrr = 1;
-                ggg = 1;
-                bbb = 1;
-            }
         }
 
         EZ_OUTPUT.red = rrr;
@@ -81,7 +69,9 @@ var Ex9_Stimmings2 = () => {
     let sprtA = document.getElementById('exmplSprite1');
     // Ensure the image is fully loaded
     if (sprtA.complete && sprtA.naturalWidth !== 0) {
-        const packedPixels = EZWG.processImagePixels(sprtA, 8, 8);
+        const packedPixels = EZWG.processImagePixels(sprtA, 8, 8).concat(
+            EZWG.processImagePixels(document.getElementById('exmplSprite2'), 8, 8)
+        );
         // console.log(packedPixels);
         packedPixels.forEach((packedValue, index) => {
             const { r, g, b, a } = EZWG.unpackU32(packedValue);
@@ -98,14 +88,24 @@ var Ex9_Stimmings2 = () => {
         ); 
 
     
-    let squareSide = Math.min(window.innerWidth, window.innerHeight)
+    let viewSsquareSide = Math.min(window.innerWidth, window.innerHeight)
     // Usage example
     let config = {
 
         CELL_SIZE: 8,
-        CHUNK_SIZE: Math.floor(squareSide/8),
+        CHUNK_SIZE: Math.floor(viewSsquareSide/8),
         CHUNKS_ACROSS: 1,
         PARTS_ACROSS: 8,
+
+        CELL_VALS: 3,
+        /*
+        Slot( 0 )  	// 0x0000FFFF		0x00FF0000 		//0xFF000000
+					EntType				TEAM			CPU TAG
+	    Slot( 1 )	// 0x000000FF						// 0x0000FF00							0x00FF0000   	0xFF000000
+					Movement next direction X(-127)		Movement next direction Y(-127)	  		// Good to go	?????
+	    Slot( 2 )	// 0x000000FF						// 0x0000FF00							0x00FF0000   	0xFF000000
+					Scent 1, SCent 2, Scent 3, Scent 4 (each 0-255)
+        */
 
         STORAGE: packedPixels,
 
@@ -125,6 +125,38 @@ var Ex9_Stimmings2 = () => {
             ${fragmentWGSL}
         `
     };
+
+
+    // Extra pre and post processing here :
+
+    let glength = config.CHUNK_SIZE*config.CHUNKS_ACROSS;
+    let attlength = glength * glength;
+    
+    let initialState = new Uint32Array( 
+        attlength *
+        config.CELL_VALS );
+    
+    for(let b = 0;b < initialState.length;b++){
+        initialState[b] = 0;
+    }
+
+    EZWG.SHA1.seed('ddfddd')
+    for(let xx = 0;xx < glength;xx++){
+        for(let yy = 0;yy < glength;yy++){
+            let type = EZWG.SHA1.random()
+            if( type < 0.1 ){
+                // Instantiate thing        + 0*attlength
+                initialState[xx*glength + yy ] = 1
+            }
+            else if( type < 0.2 ){
+                //Instantiate another
+                initialState[xx*glength + yy ] = 2
+            }
+            // else just keep it zero
+        }
+    }
+
+    config.STARTING_BUFFER = initialState;
 
     // Intital set the default runner to this
     EZ_EXAMPLE = new EZWG( config);
