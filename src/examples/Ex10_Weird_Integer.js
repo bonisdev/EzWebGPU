@@ -27,13 +27,14 @@ var Ex10_RealWeirdIntegerCA = () => {
     `
         // Find the chunk's bit smashing parameters
         // from the storage buffer
-
-        let ops: u32 = ${numberOfOperationsPerStep};
-        let sqInd: u32 = EZ_CHUNK_IND * ops;
+ 
+        let sqInd: u32 = EZ_CHUNK_IND * (1);
 
          
         var valToSet = 0u;
         var choice = 0u;
+
+        var megaSec: u32 = 0u;
 
         var bufferInd: u32 = EZ_CELL_IND + 0 * EZ_TOTAL_CELLS;
  
@@ -41,23 +42,29 @@ var Ex10_RealWeirdIntegerCA = () => {
         loop {
             if uiind >= EZ_CELL_VALS { break; }
 
-            valToSet = EZ_STATE_IN[ bufferInd ];//EZ_CELL_VAL( EZX, 0, EZY, 0, uiind );
-            choice = EZ_STORAGE[ sqInd ]; 
+            var neighbourCount: u32 = 0u; 
+            neighbourCount += EZ_CELL_VAL( EZX, 1, EZY,  1, uiind ) / 8u;
+            neighbourCount += EZ_CELL_VAL( EZX, 1, EZY,  0, uiind ) / 8u;
+            neighbourCount += EZ_CELL_VAL( EZX, 1, EZY, -1, uiind ) / 8u;
+            neighbourCount += EZ_CELL_VAL( EZX, 0, EZY, -1, uiind ) / 8u; 
+            neighbourCount += EZ_CELL_VAL( EZX, -1, EZY, -1, uiind ) / 8u;
+            neighbourCount += EZ_CELL_VAL( EZX, -1, EZY,  0, uiind ) / 8u;
+            neighbourCount += EZ_CELL_VAL( EZX, -1, EZY,  1, uiind ) / 8u;
+            neighbourCount += EZ_CELL_VAL( EZX, 0,  EZY,  1, uiind ) / 8u;
 
-            if( choice > (0xffffffff / 3) ){
-                valToSet = valToSet ^ valToSet;
-            }
-            else{
-                valToSet = valToSet ^ valToSet;
-            }
-            valToSet = valToSet + 1;//EZX % 23 + EZY % 35;
+            valToSet = EZ_STATE_IN[ EZ_CELL_IND + uiind*EZ_TOTAL_CELLS ];//EZ_CELL_VAL( EZX, 0, EZY, 0, uiind );
+            choice = EZ_STORAGE[ sqInd ];
+            
+            valToSet = valToSet ^ choice;
+            //megaSec = choice & valToSet;
 
+            valToSet = valToSet ^ neighbourCount;
+
+            //valToSet = valToSet + 1u + (EZX % 23) + (EZY % 35);
             EZ_STATE_OUT[ EZ_CELL_IND + uiind*EZ_TOTAL_CELLS ] = valToSet;
             uiind = uiind + 1;
         }
-
-        // var bufferInd: u32 = EZ_CELL_IND + valIndex * EZ_TOTAL_CELLS;
-        // var myState: u32 = EZ_STATE_IN[ bufferInd ];
+ 
  
     `;
 
@@ -98,8 +105,8 @@ var Ex10_RealWeirdIntegerCA = () => {
 
         STORAGE: randomMasks,
         
-        READ_BACK_FREQ: 10,     // Every 15 time steps read back the gpu buffer
-        READ_BACK_FUNC: ( currentStep, entireBuffer ) => { console.log('entireBuffer', entireBuffer); },
+        // READ_BACK_FREQ: 10,     // Every 15 time steps read back the gpu buffer
+        // READ_BACK_FUNC: ( currentStep, entireBuffer ) => { console.log('entireBuffer', entireBuffer); },
 
         BUFFER_TYPE: 'u32',
         STORAGE_TYPE: 'u32',
@@ -120,7 +127,7 @@ var Ex10_RealWeirdIntegerCA = () => {
 
     // Intital set the default runner to this
     EZ_EXAMPLE = new EZWG( config);
-    EZ_EXAMPLE.UPDATE_INTERVAL = 300
+    EZ_EXAMPLE.UPDATE_INTERVAL = 16
     
     
 };

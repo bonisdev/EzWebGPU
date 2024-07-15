@@ -128,6 +128,6 @@ var Ex9_Stimmings2 = () => {
 
     // Intital set the default runner to this
     EZ_EXAMPLE = new EZWG( config);
-    
+    EZ_EXAMPLE.UPDATE_INTERVAL = 50;
     
 };

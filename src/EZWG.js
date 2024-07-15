@@ -37,7 +37,7 @@ class EZWG {
             READ_BACK_FUNC: ( currentStep, entireBuffer ) => {},
             CELL_SIZE: 8,
             STORAGE: null,//(new Float32Array(0)),
-            WORKGROUP_SIZE: 9,      // normally i leave it at 8 but it causes this weird flashing bug sometimes - could be a WebGPU bug
+            WORKGROUP_SIZE: 5,      // normally i leave it at 8 but it causes this weird flashing bug sometimes - could be a WebGPU bug
             STARTING_BUFFER: []     // if it's empty 
         };
 
@@ -65,6 +65,11 @@ class EZWG {
         this.CELL_SIZE = this._validatePositiveInteger(this.config.CELL_SIZE, 'CELL_SIZE');
         this.STORAGE = this.config.STORAGE;         //this._validateArray(this.BUFFER_TYPE, this.config.STORAGE, 'STORAGE');
         this.WORKGROUP_SIZE = this._validatePositiveInteger(this.config.WORKGROUP_SIZE, 'WORKGROUP_SIZE');
+
+
+        // OVerride for safe execution
+
+
         this.STARTING_BUFFER = this.config.STARTING_BUFFER;
         this.STORAGE_SIZE = this.STORAGE ? this.STORAGE.length : 0;     // this._validatePositiveInteger(this.config.STORAGE_SIZE, 'STORAGE_SIZE');
 
@@ -102,6 +107,21 @@ class EZWG {
         // Game time specific variables
         //128 x 128
         this.GRID_SIZE = (this.CHUNK_SIZE * this.CHUNKS_ACROSS)
+
+        let goodArea = -1;
+        for(let n = 2;n < 9;n++){
+            if( this.GRID_SIZE % n === 0 ){
+                goodArea = n;
+            }
+        }
+        if( goodArea < 0 ){
+            throw new Error("no good owkrpgrup size could be foind for GRID_SIZE: "+ this.GRID_SIZE)
+        }
+        else{
+            this.WORKGROUP_SIZE = goodArea
+        }
+
+
         this.TOTAL_CELLS = this.GRID_SIZE * this.GRID_SIZE 
         this.UPDATE_INTERVAL = 45
 
