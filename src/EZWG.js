@@ -34,8 +34,12 @@ class EZWG {
             STARTING_CONFIG: EZWG.ALL_ZERO,
             COMPUTE_WGSL: '',
             FRAGMENT_WGSL: '',
+            BY_PIXEL: false,    // if this is true run the fragment shader from the perspective of each pixel instead of WidthxHeightxTriangles
             READ_BACK_FUNC: ( currentStep, entireBuffer ) => {},
             CELL_SIZE: 8,
+            //  experimental right now 
+                FRAG_PIXEL_MODE: false, // if true, it's a fragment shader
+                PIXEL_PER_COMP: 1,  // how many pixels per comp used in FRAG MODE ONLY 
             STORAGE: null,//(new Float32Array(0)),
             WORKGROUP_SIZE: 5,      // normally i leave it at 8 but it causes this weird flashing bug sometimes - could be a WebGPU bug
             STARTING_BUFFER: []     // if it's empty it will make a default random or all zeros or something
@@ -63,6 +67,10 @@ class EZWG {
         this.FRAGMENT_WGSL = this._validateString(this.config.FRAGMENT_WGSL, 'FRAGMENT_WGSL');
         this.READ_BACK_FUNC = this.config.READ_BACK_FUNC;
         this.CELL_SIZE = this._validatePositiveInteger(this.config.CELL_SIZE, 'CELL_SIZE');
+        
+        this.FRAG_PIXEL_MODE =  this.config.FRAG_PIXEL_MODE;
+        this.PIXEL_PER_COMP = this._validatePositiveInteger(this.config.PIXEL_PER_COMP, 'PIXEL_PER_COMP');
+
         this.STORAGE = this.config.STORAGE;         //this._validateArray(this.BUFFER_TYPE, this.config.STORAGE, 'STORAGE');
         this.WORKGROUP_SIZE = this._validatePositiveInteger(this.config.WORKGROUP_SIZE, 'WORKGROUP_SIZE');
 
@@ -377,38 +385,54 @@ class EZWG {
 			{ name: "position", type: "vec3" },
 			{ name: "color", type: "vec4" }
 		];
-        this.vertices = new Float32Array([ 
-			// X,    Y
-			//-1, -1, // Triangle 1
-			//1, -1,
-			//1,  1, 
-			//-1, -1, // Triangle 2
-			//1,  1,
-			//-1,  1,
 
-            -1*(1/this.PARTS_ACROSS), -1*(1/this.PARTS_ACROSS), // Triangle 1
-			1*(1/this.PARTS_ACROSS), -1*(1/this.PARTS_ACROSS),
-			1*(1/this.PARTS_ACROSS),  1*(1/this.PARTS_ACROSS), 
-			-1*(1/this.PARTS_ACROSS), -1*(1/this.PARTS_ACROSS), // Triangle 2
-			1*(1/this.PARTS_ACROSS),  1*(1/this.PARTS_ACROSS),
-			-1*(1/this.PARTS_ACROSS),  1*(1/this.PARTS_ACROSS),
- 
-            //// Front face
-            //-1, -1, 1,  // Vertex 0
-            //1, -1, 1,   // Vertex 1
-            //1, 1, 1,    // Vertex 2
-            //-1, 1, 1,   // Vertex 3 
-            //// Right face
-            //1, -1, 1,   // Vertex 4 (Same as Vertex 1 of Front face)
-            //1, -1, -1,  // Vertex 5
-            //1, 1, -1,   // Vertex 6
-            //1, 1, 1,    // Vertex 7 (Same as Vertex 2 of Front face) 
-            //// Top face
-            //-1, 1, 1,   // Vertex 8 (Same as Vertex 3 of Front face)
-            //1, 1, 1,    // Vertex 9 (Same as Vertex 2 of Front face)
-            //1, 1, -1,   // Vertex 10
-            //-1, 1, -1,  // Vertex 11
-		]);
+
+        if(this.FRAG_PIXEL_MODE){
+            this.vertices = new Float32Array([  
+                -1,     -1,  // Bottom-left
+                1,      -1,  // Bottom-right
+                -1,     1,  // Top-left
+                -1,     1,  // Top-left
+                1,      -1,  // Bottom-right
+                1,      1,  // Top-right
+             
+            ]);
+        }
+        else{
+            this.vertices = new Float32Array([ 
+                // X,    Y
+                //-1, -1, // Triangle 1
+                //1, -1,
+                //1,  1, 
+                //-1, -1, // Triangle 2
+                //1,  1,
+                //-1,  1,
+    
+                -1*(1/this.PARTS_ACROSS), -1*(1/this.PARTS_ACROSS), // Triangle 1
+                1*(1/this.PARTS_ACROSS), -1*(1/this.PARTS_ACROSS),
+                1*(1/this.PARTS_ACROSS),  1*(1/this.PARTS_ACROSS), 
+                -1*(1/this.PARTS_ACROSS), -1*(1/this.PARTS_ACROSS), // Triangle 2
+                1*(1/this.PARTS_ACROSS),  1*(1/this.PARTS_ACROSS),
+                -1*(1/this.PARTS_ACROSS),  1*(1/this.PARTS_ACROSS), 
+            
+                //// Front face
+                //-1, -1, 1,  // Vertex 0
+                //1, -1, 1,   // Vertex 1
+                //1, 1, 1,    // Vertex 2
+                //-1, 1, 1,   // Vertex 3 
+                //// Right face
+                //1, -1, 1,   // Vertex 4 (Same as Vertex 1 of Front face)
+                //1, -1, -1,  // Vertex 5
+                //1, 1, -1,   // Vertex 6
+                //1, 1, 1,    // Vertex 7 (Same as Vertex 2 of Front face) 
+                //// Top face
+                //-1, 1, 1,   // Vertex 8 (Same as Vertex 3 of Front face)
+                //1, 1, 1,    // Vertex 9 (Same as Vertex 2 of Front face)
+                //1, 1, -1,   // Vertex 10
+                //-1, 1, -1,  // Vertex 11
+            ]);
+        }
+        
 		// SWUARE DEFINTION
 		const vertexBufferLayout = {
 			arrayStride: 8,//  2 x 4 byte coordinates = 8
@@ -445,12 +469,12 @@ class EZWG {
 			entries: [
 				{
 					binding: 0,
-					visibility: GPUShaderStage.VERTEX | GPUShaderStage.COMPUTE,
+					visibility: GPUShaderStage.VERTEX | GPUShaderStage.COMPUTE | GPUShaderStage.FRAGMENT,
 					buffer: {} // Grid uniform buffer
 				}, 
 				{
 					binding: 1,
-					visibility: GPUShaderStage.VERTEX | GPUShaderStage.COMPUTE,
+					visibility: GPUShaderStage.VERTEX | GPUShaderStage.COMPUTE | GPUShaderStage.FRAGMENT,
 					buffer: { type: "read-only-storage" } // Cell state input buffer
 				}, 
 				{
@@ -465,7 +489,7 @@ class EZWG {
 				}, 
 				{
 					binding: 4,
-					visibility: GPUShaderStage.VERTEX | GPUShaderStage.COMPUTE,
+					visibility: GPUShaderStage.VERTEX | GPUShaderStage.COMPUTE | GPUShaderStage.FRAGMENT,
 					buffer: { type: "read-only-storage" } // large static block of config numbers
 				}
                 //,
@@ -483,13 +507,26 @@ class EZWG {
 		});
 
         var cellShaderWSGL = `
-			struct VertexOutput {
-				@builtin(position) position: vec4f,
-				@location(0) cell: vec2f,
-				@location(1) red: f32,
-				@location(2) grn: f32,
-				@location(3) blu: f32
-			};
+
+            ${
+                !this.FRAG_PIXEL_MODE ? (
+                    `
+                    struct VertexOutput {
+                        @builtin(position) position: vec4f,
+                        @location(0) cell: vec2f,
+                        @location(1) red: f32,
+                        @location(2) grn: f32,
+                        @location(3) blu: f32
+                    };
+                    `
+                ) : (
+                    `
+                    struct VertexOutput {
+                        @builtin(position) position: vec4f,
+                    };
+                    `
+                )
+            } 
 
 			@group(0) @binding(0) var<uniform> grid: vec2f;
 			@group(0) @binding(1) var<storage> EZ_STATE_IN: array<${this.BUFFER_TYPE}>; 
@@ -531,76 +568,135 @@ class EZWG {
             }
             
 
-			@vertex
-			fn vertexMain(@location(0) position: vec2f, @builtin(instance_index) EZ_INSTANCE: u32) -> VertexOutput {
-				var EZ_OUTPUT: VertexOutput;
-                
-				let i = f32(EZ_INSTANCE);
-                let EZ_PARTS_ACROSS_F: f32 = ${this.PARTS_ACROSS}f;
-                let caWu: u32 = ${this.PARTS_ACROSS}u;
+            
+            ${  // Normal dual triangle fiasco
+                this.FRAG_PIXEL_MODE ? (
+                    `
+                    @vertex
+                    fn vertexMain(@location(0) position: vec2f) -> VertexOutput {
+                        var output: VertexOutput;
+                        output.position = vec4f(position, 0.0, 1.0);
+                        return output;
+                    }
+                    `
+                ) : (
+                    `
+                    @vertex
+                    fn vertexMain(@location(0) position: vec2f, @builtin(instance_index) EZ_INSTANCE: u32) -> VertexOutput {
+                        var EZ_OUTPUT: VertexOutput;
+                        
+                        var i = f32(EZ_INSTANCE);
+                        let EZ_PARTS_ACROSS_F: f32 = ${this.PARTS_ACROSS}f;
+                        let caWu: u32 = ${this.PARTS_ACROSS}u;
 
-                const EZ_CELL_VALS: u32 = ${this.CELL_VALS}u;
-                const CHUNKS_ACROSS: u32 = ${this.CHUNKS_ACROSS}u;
-                const EZ_CHUNK_SIZE: u32 = ${this.CHUNK_SIZE}u;
-                let EZ_CELLS_ACROSS_X: u32 = u32( grid.x );
-                let EZ_CELLS_ACROSS_Y: u32 = u32( grid.y );
-                let EZ_TOTAL_CELLS = EZ_CELLS_ACROSS_X * EZ_CELLS_ACROSS_Y;
+                        const EZ_CELL_VALS: u32 = ${this.CELL_VALS}u;
+                        const CHUNKS_ACROSS: u32 = ${this.CHUNKS_ACROSS}u;
+                        const EZ_CHUNK_SIZE: u32 = ${this.CHUNK_SIZE}u;
+                        let EZ_CELLS_ACROSS_X: u32 = u32( grid.x );
+                        let EZ_CELLS_ACROSS_Y: u32 = u32( grid.y );
+                        let EZ_TOTAL_CELLS = EZ_CELLS_ACROSS_X * EZ_CELLS_ACROSS_Y;
 
-                // Global grid counting each component as a cell
-                var EZ_RAW_COL: u32 = EZ_INSTANCE % (EZ_CELLS_ACROSS_X * caWu);
-                var EZ_RAW_ROW: u32 = EZ_INSTANCE / (EZ_CELLS_ACROSS_Y * caWu);
-				let EZ_CELL = vec2f( f32(EZ_RAW_COL / caWu), f32(EZ_RAW_ROW / caWu) );
+                        // Global grid counting each component as a cell
+                            // now used in another context
+                        // var EZ_RAW_COL: u32 = EZ_INSTANCE % (EZ_CELLS_ACROSS_X * caWu);
+                        // var EZ_RAW_ROW: u32 = EZ_INSTANCE / (EZ_CELLS_ACROSS_Y * caWu);
+                        ${
+                            !this.FRAG_PIXEL_MODE ? "var EZ_RAW_COL: u32 = EZ_INSTANCE % (EZ_CELLS_ACROSS_X * caWu);\nvar EZ_RAW_ROW: u32 = EZ_INSTANCE / (EZ_CELLS_ACROSS_Y * caWu);" 
+                            :
+                            "var EZ_RAW_COL: u32 = u32(floor(fragCoord.x));\nvar EZ_RAW_ROW: u32 = u32(floor(fragCoord.y));"
+                        }
+                        let EZ_CELL = vec2f( f32(EZ_RAW_COL / caWu), f32(EZ_RAW_ROW / caWu) );
 
-                var EZX: u32 = EZ_RAW_COL / caWu;
-                var EZY: u32 = EZ_RAW_ROW / caWu;
-                var EZ_CELL_IND: u32 = EZX + ( EZY * EZ_CELLS_ACROSS_X);
+                        var EZX: u32 = EZ_RAW_COL / caWu;
+                        var EZY: u32 = EZ_RAW_ROW / caWu;
+                        var EZ_CELL_IND: u32 = EZX + ( EZY * EZ_CELLS_ACROSS_X);
 
-                var EZ_CHUNK_X: u32 = EZX / EZ_CHUNK_SIZE;
-                var EZ_CHUNK_Y: u32 = EZY / EZ_CHUNK_SIZE;
-                var EZ_CHUNK_IND: u32 = (EZ_CHUNK_X  + EZ_CHUNK_Y * CHUNKS_ACROSS);
-                
-                // Cell coordinates relative to their respective chunk
-                let EZX_R = EZX % EZ_CHUNK_SIZE;
-                let EZY_R = EZY % EZ_CHUNK_SIZE;
+                        var EZ_CHUNK_X: u32 = EZX / EZ_CHUNK_SIZE;
+                        var EZ_CHUNK_Y: u32 = EZY / EZ_CHUNK_SIZE;
+                        var EZ_CHUNK_IND: u32 = (EZ_CHUNK_X  + EZ_CHUNK_Y * CHUNKS_ACROSS);
+                        
+                        // Cell coordinates relative to their respective chunk
+                        let EZX_R = EZX % EZ_CHUNK_SIZE;
+                        let EZY_R = EZY % EZ_CHUNK_SIZE;
 
-                //--------------------------------------------------------- Extra values for drawing
+                        //--------------------------------------------------------- Extra values for drawing
 
-                // Component metas
-                var EZ_COMP_X: u32 = EZ_RAW_COL % caWu;
-                var EZ_COMP_Y: u32 = EZ_RAW_ROW % caWu;
-                var EZ_COMP_IND: u32 = EZ_COMP_X + EZ_COMP_Y * caWu;
+                        // Component metas
+                        var EZ_COMP_X: u32 = EZ_RAW_COL % caWu;
+                        var EZ_COMP_Y: u32 = EZ_RAW_ROW % caWu;
+                        var EZ_COMP_IND: u32 = EZ_COMP_X + EZ_COMP_Y * caWu;
 
-                // Gets you to the center of the cell
-				let EZ_h_cellOffset: vec2f = EZ_CELL / grid * 2;
-				var EZ_h_pos = (position+1) / grid - 1 + EZ_h_cellOffset;
+                        // Gets you to the center of the cell
+                        let EZ_h_cellOffset: vec2f = EZ_CELL / grid * 2;
+                        var EZ_h_pos = (position+1) / grid - 1 + EZ_h_cellOffset;
 
-                // Cell size 
-                var EZ_h_clsX: f32 = (1 / grid.x) * 2;
-                var EZ_h_clsY: f32 = (1 / grid.y) * 2;
-                var EZ_h_smlDx: f32 = (1/EZ_PARTS_ACROSS_F) * EZ_h_clsX;
-                var EZ_h_smlDy: f32 = (1/EZ_PARTS_ACROSS_F) * EZ_h_clsY;
+                        // Cell size 
+                        var EZ_h_clsX: f32 = (1 / grid.x) * 2;
+                        var EZ_h_clsY: f32 = (1 / grid.y) * 2;
+                        var EZ_h_smlDx: f32 = (1/EZ_PARTS_ACROSS_F) * EZ_h_clsX;
+                        var EZ_h_smlDy: f32 = (1/EZ_PARTS_ACROSS_F) * EZ_h_clsY;
 
-                EZ_h_pos.x = EZ_h_pos.x + (f32(EZ_COMP_X) * EZ_h_smlDx) - (EZ_h_clsX*0.5) + EZ_h_smlDx/2;
-                EZ_h_pos.y = EZ_h_pos.y + (f32(EZ_COMP_Y) * EZ_h_smlDy) - (EZ_h_clsY*0.5) + EZ_h_smlDy/2;
+                        EZ_h_pos.x = EZ_h_pos.x + (f32(EZ_COMP_X) * EZ_h_smlDx) - (EZ_h_clsX*0.5) + EZ_h_smlDx/2;
+                        EZ_h_pos.y = EZ_h_pos.y + (f32(EZ_COMP_Y) * EZ_h_smlDy) - (EZ_h_clsY*0.5) + EZ_h_smlDy/2;
 
-				EZ_OUTPUT.position = vec4f(EZ_h_pos, 0, 1);
-				EZ_OUTPUT.cell = EZ_CELL / (grid*1);
-				
+                        EZ_OUTPUT.position = vec4f(EZ_h_pos, 0, 1);
+                        EZ_OUTPUT.cell = EZ_CELL / (grid*1);
 
-                const EZ_cellParts: u32 = ${this.PARTS_ACROSS}u; 
-                
-                
+                        
 
-                ${this.FRAGMENT_WGSL}
-				
+                        const EZ_cellParts: u32 = ${this.PARTS_ACROSS}u; 
+                        
+                        
 
-				return EZ_OUTPUT;
-			}
+                        ${this.FRAGMENT_WGSL}
+                        
 
-			@fragment
-			fn fragmentMain(input: VertexOutput) -> @location(0) vec4f { 
-				return vec4f( input.red, input.grn, input.blu, 1);
-			}
+                        return EZ_OUTPUT;
+                    }
+                    `
+                )
+            }
+			
+
+
+            ${  // Normal dual triangle fiasco
+                !this.FRAG_PIXEL_MODE ? (
+                    `
+                    @fragment
+                    fn fragmentMain(input: VertexOutput) -> @location(0) vec4f { 
+                        return vec4f( input.red, input.grn, input.blu, 1);
+                    }
+                    `
+                ) : (
+                    `
+                    @fragment
+                    fn fragmentMain(@builtin(position) fragCoord: vec4f) -> @location(0) vec4f {
+                        let gridSize = grid;
+                        let x = i32(floor(fragCoord.x));
+                        let y = i32(floor(fragCoord.y));
+                        let cellIndex = y * i32(gridSize.x) + x;
+
+                        var r: f32 = 0.0;
+                        var g: f32 = 0.0;
+                        var b: f32 = 0.0;
+                        
+                        if (cellIndex >= 0 && cellIndex < i32(gridSize.x * gridSize.y)) {
+                            let cell = EZ_STATE_IN[cellIndex];
+                            let entityType = cell; // Assuming cell holds the entity type
+
+                            if (entityType > 0u) {
+                                let colorVec = EZ_STORAGE[(64u * (entityType - 1u))];
+                                r = f32(colorVec & 0xFF) / 255.0;
+                                g = f32((colorVec >> 8) & 0xFF) / 255.0;
+                                b = f32((colorVec >> 16) & 0xFF) / 255.0;
+                            }
+                        }
+
+                        return vec4f(r, g, b, 1.0);
+                    }
+                    `
+                )
+            } 
 		`;
  
 
@@ -984,6 +1080,8 @@ class EZWG {
             this.device.queue.writeBuffer( this.userInputTempStorage, 0, this.liveInput);
             this.liveInput[6] = 0;
 
+            this.liveInput[ this.USER_INPUT_BUFFER_SIZE - 1 ] = this.step
+
             //}
             //// The real indicator is userIn
             //else{
@@ -1047,7 +1145,15 @@ class EZWG {
             pass.setPipeline( this.cellPipeline );
             pass.setBindGroup( 0, this.bindGroups[ this.step % 2 ] ); // Updated!
             pass.setVertexBuffer( 0, this.vertexBuffer );
-            pass.draw( this.vertices.length / 2, this.GRID_SIZE * this.GRID_SIZE * (this.PARTS_ACROSS*this.PARTS_ACROSS) );
+
+            if( this.FRAG_PIXEL_MODE ){
+                pass.draw( 6, 1 );
+            }
+            else{
+                pass.draw( this.vertices.length / 2, this.GRID_SIZE * this.GRID_SIZE * (this.PARTS_ACROSS*this.PARTS_ACROSS) );
+            }
+
+            
 
             // End the render pass and submit the command buffer
             pass.end();

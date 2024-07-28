@@ -29,12 +29,33 @@ var Ex9_Stimmings2 = () => {
         // neighbourCount += EZ_CELL_VAL( EZX, -1, EZY,  1, cellAttribute );
         // neighbourCount += EZ_CELL_VAL( EZX,  0, EZY,  1, cellAttribute );
 
-        loop{ 
-            if cellAttribute >= EZ_CELL_VALS { break; }
 
-            EZ_STATE_OUT[ EZ_CELL_IND + EZ_TOTAL_CELLS*cellAttribute ] = EZ_CELL_VAL( EZX, 0, EZY, 0, cellAttribute );
-            cellAttribute = cellAttribute + 1;
+        var bufferInd: u32 = EZ_CELL_IND + 0u * EZ_TOTAL_CELLS;
+        var myState: u32 = EZ_STATE_IN[ bufferInd ];
+ 
+        // Hadnle the mouse input here
+        // Here's the addition of mouse handling 
+        //      'incrementer' variable for each f32 or u32 value in memory  
+        cellAttribute = 0u;
+
+        // Get the min max of the input coordinattres
+        var minX: u32 = min( u32(EZ_USER_INPUT[0]),  u32(EZ_USER_INPUT[2]));
+        var maxX: u32 = max( u32(EZ_USER_INPUT[0]),  u32(EZ_USER_INPUT[2]));
+        var minY: u32 = min( u32(EZ_USER_INPUT[1]),  u32(EZ_USER_INPUT[3]));
+        var maxY: u32 = max( u32(EZ_USER_INPUT[1]),  u32(EZ_USER_INPUT[3]));
+        if( EZ_USER_INPUT[6] > 0){
+            if( EZX >= minX && EZX <= maxX && EZY >= minY && EZY <= maxY ){
+                // The case where the cell is in the bounding box of the user's click drag
+                EZ_STATE_OUT[ bufferInd ] = 1; 
+            }
+            else{
+                EZ_STATE_OUT[ bufferInd ] = myState; 
+            }
+        }
+        else{
+            EZ_STATE_OUT[ bufferInd ] = myState; 
         } 
+
     `;
 
     let fragmentWGSL = 
@@ -88,7 +109,7 @@ var Ex9_Stimmings2 = () => {
         ); 
 
     
-    let viewSsquareSide = Math.min(window.innerWidth, window.innerHeight)
+    let viewSsquareSide = 512;//Math.min(window.innerWidth, window.innerHeight)
     // Usage example
     let config = {
 
@@ -98,6 +119,9 @@ var Ex9_Stimmings2 = () => {
         PARTS_ACROSS: 8,
 
         CELL_VALS: 3,
+        
+            FRAG_PIXEL_MODE: true,
+            PIXEL_PER_COMP: 1,
         /*
         Slot( 0 )  	// 0x0000FFFF		0x00FF0000 		//0xFF000000
 					EntType				TEAM			CPU TAG
@@ -148,7 +172,7 @@ var Ex9_Stimmings2 = () => {
                 // Instantiate thing        + 0*attlength
                 initialState[xx*glength + yy ] = 1
             }
-            else if( type < 0.2 ){
+            else if( type < 0.5 ){
                 //Instantiate another
                 initialState[xx*glength + yy ] = 2
             }
