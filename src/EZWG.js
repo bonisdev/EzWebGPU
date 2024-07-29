@@ -789,6 +789,25 @@ class EZWG {
                 return f32(c & 0x00FFFFFFu)  / f32(0x01000000u);
             }
 
+            fn EZ_U32_TO_VEC4(value: u32) -> vec4<u32> {
+                // Extract each byte using bitwise operations
+                let byte0: u32 = (value & 0x000000FF);
+                let byte1: u32 = (value >> 8) & 0x000000FF;
+                let byte2: u32 = (value >> 16) & 0x000000FF;
+                let byte3: u32 = (value >> 24) & 0x000000FF;
+                // Return as a vector
+                return vec4<u32>(byte0, byte1, byte2, byte3);
+            }
+            fn EZ_VEC4_TO_U32(vec: vec4<u32>) -> u32 {
+                // Combine each byte into a single u32 value using bitwise operations
+                let value: u32 = (vec.x & 0x000000FF) |
+                    ((vec.y & 0x000000FF) << 8) |
+                    ((vec.z & 0x000000FF) << 16) |
+                    ((vec.w & 0x000000FF) << 24);
+                return value;
+            }
+
+
 			@compute @workgroup_size( ${this.WORKGROUP_SIZE}, ${this.WORKGROUP_SIZE} )
 			fn computeMain(@builtin(global_invocation_id) EZ_CELL: vec3u) {
                 
@@ -1379,9 +1398,9 @@ class EZWG {
             tot: 0
         },
         hashToFloat(hash) {
-            const hexPart = hash.substring(0, 16);
+            const hexPart = hash.substring(0, 8); // Take only the first 8 characters for 32 bits
             const intVal = parseInt(hexPart, 16);
-            const maxInt = Math.pow(2, 64) - 1;
+            const maxInt = Math.pow(2, 32) - 1;
             return intVal / maxInt;
         },
         
