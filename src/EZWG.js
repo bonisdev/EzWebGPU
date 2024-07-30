@@ -671,10 +671,19 @@ class EZWG {
                     `
                     @fragment
                     fn fragmentMain(@builtin(position) fragCoord: vec4f) -> @location(0) vec4f {
-                        let gridSize = grid;
-                        let x = i32(floor(fragCoord.x));
-                        let y = i32(floor(fragCoord.y));
-                        let cellIndex = y * i32(gridSize.x) + x;
+
+                    
+
+
+
+
+
+                        var gridSize = grid;
+                        var x = i32(floor(fragCoord.x));
+                        var y = i32(floor(fragCoord.y));
+                        var xx = ( x % ( i32(gridSize.x)*8 ) );
+                        var yy = ( y % ( i32(gridSize.y)*8 ) );
+                        let cellIndex = yy * i32(gridSize.x) + xx;
 
                         var r: f32 = 0.0;
                         var g: f32 = 0.0;
@@ -685,7 +694,7 @@ class EZWG {
                             let entityType = cell; // Assuming cell holds the entity type
 
                             if (entityType > 0u) {
-                                let colorVec = EZ_STORAGE[(64u * (entityType - 1u))];
+                                var colorVec = EZ_STORAGE[(64u * (entityType - 1u)) + u32(x%8) + u32(y%8)*8];
                                 r = f32(colorVec & 0xFF) / 255.0;
                                 g = f32((colorVec >> 8) & 0xFF) / 255.0;
                                 b = f32((colorVec >> 16) & 0xFF) / 255.0;
