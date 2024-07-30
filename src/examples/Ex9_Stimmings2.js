@@ -108,15 +108,14 @@ var Ex9_Stimmings2 = () => {
             EZWG.processImagePixels(document.getElementById('exmplSprite2'), 8, 8)
         ); 
 
-    
-    let viewSsquareSide = 128;//Math.min(window.innerWidth, window.innerHeight)
+
     // Usage example
     let config = {
 
-        CELL_SIZE: 1,
-        CHUNK_SIZE: Math.floor(viewSsquareSide/1),
+        CELL_SIZE: 8,
+        CHUNK_SIZE: 32,
         CHUNKS_ACROSS: 1,
-        PARTS_ACROSS: 1,
+        PARTS_ACROSS: 8,
 
         CELL_VALS: 3,
         
