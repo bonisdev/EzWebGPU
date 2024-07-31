@@ -674,39 +674,61 @@ class EZWG {
 
                     
 
-
+                        var paAcross: i32 = ${this.PARTS_ACROSS};
 
 
 
                         var gridSize = grid;
                         var x = i32(floor(fragCoord.x));
                         var y = i32(floor(fragCoord.y));
-                        var xx = ( x % ( i32(gridSize.x)*8 ) );
-                        var yy = ( y % ( i32(gridSize.y)*8 ) );
+                        var xx = ( x / ( i32(gridSize.x)*8 ) );
+                        var yy = ( y / ( i32(gridSize.y)*8 ) );
                         let cellIndex = yy * i32(gridSize.x) + xx;
-                        let pixelIndex = y * i32(gridSize.x*8*8) + x;
+                        var pixelIndex = y * i32(gridSize.x*8) + x;
 
                         var r: f32 = 1.0;
                         var g: f32 = 0.2;
                         var b: f32 = 0.3;
 
+                        if( xx < 32/2 && yy < 32/2 ){
+                            r = 0.1;
+                            g = 0.3;
+                            b = 0.1;
+                        }
+                        else if( xx >= 32/2 && yy < 32/2 ){
+                            r = 0.5;
+                            g = 0.1;
+                            b = 0.1;
+                        }
+                        else if( xx >= 32/2 && yy >= 32/2 ){
+                            r = 0.1;
+                            g = 0.6;
+                            b = 0.1;
+                        }
+                        else if( xx < 32/2 && yy >= 32/2 ){
+                            r = 0.1;
+                            g = 0.3;
+                            b = 0.6;
+                        }
+                         
+
                         // TODO test what quadrant y'all in finna shnngg
                         
-                        if (pixelIndex >= 0 && pixelIndex < i32(gridSize.x * gridSize.y) * 8 * 8 ) {
-                            let cell = EZ_STATE_IN[cellIndex];
-                            let entityType = cell; // Assuming cell holds the entity type 
-                            if (entityType > 0u) {
-                               var colorVec = EZ_STORAGE[(64u * (entityType - 1u)) + u32(x%8) + u32(y%8)*8];
-                               r = f32(colorVec & 0xFF) / 255.0;
-                               g = f32((colorVec >> 8) & 0xFF) / 255.0;
-                               b = f32((colorVec >> 16) & 0xFF) / 255.0;
-                            } 
-                        }
-                        else{
-                            r = 0.5;
-                            g = 1.0;
-                            b = 1.0;
-                        }
+                        // if (pixelIndex >= 0 && pixelIndex < i32(gridSize.x * gridSize.y) * 8 * 8 ) {
+                        //     let cell = EZ_STATE_IN[cellIndex];
+                        //     let entityType = cell; // Assuming cell holds the entity type 
+                        //     if (entityType > 0u) {
+                        //        var colorVec = EZ_STORAGE[(64u * (entityType - 1u)) + u32(x%8) + u32(y%8)*8];
+                        //        r = f32(colorVec & 0xFF) / 255.0;
+                        //        g = f32((colorVec >> 8) & 0xFF) / 255.0;
+                        //        b = f32((colorVec >> 16) & 0xFF) / 255.0;
+                        //     } 
+                        // }
+                        // else{
+                        //     r = 0.5;
+                        //     g = 1.0;
+                        //     b = 1.0;
+                        // }
 
                         return vec4f(r, g, b, 1.0);
                     }
