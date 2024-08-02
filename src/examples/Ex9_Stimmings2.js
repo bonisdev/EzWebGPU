@@ -60,12 +60,8 @@ var Ex9_Stimmings2 = () => {
 
     let fragmentWGSL = 
     `  
-        var xx = ( EZ_RAW_COL / ( u32(grid.x)*8u ) );
-        var yy = ( EZ_RAW_ROW / ( u32(grid.y)*8u ) );
-        let cellIndex = yy * u32(grid.x) + xx; 
- 
 
-        if( EZ_RAW_ROW < 12u && EZ_RAW_COL < 12u ){ 
+        if( EZX < 12u && EZY < 12u ){ 
             EZ_OUTPUT.red = 1;
             EZ_OUTPUT.grn = 0.3;
             EZ_OUTPUT.blu = 0.1; 
@@ -126,13 +122,13 @@ var Ex9_Stimmings2 = () => {
         CELL_SIZE: 8,
         CHUNK_SIZE: 32,
         CHUNKS_ACROSS: 1,
-        PARTS_ACROSS: 8,
+        PARTS_ACROSS: 8,            // all used in the frag shader...
 
         CELL_VALS: 3,
         
             FRAG_PIXEL_MODE: false, // switches rendering logic to the fragment shader instead of
                                     // many draw calls to two traingle shape 
-            PIXEL_PER_COMP: 1,      //
+            PIXEL_PER_COMP: 1,      // this is never used...?
         /*
         Slot( 0 )  	// 0x0000FFFF		0x00FF0000 		//0xFF000000
 					EntType				TEAM			CPU TAG

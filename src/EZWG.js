@@ -637,7 +637,7 @@ class EZWG {
 
             `
         }
-        // Weird pixel by pixel way on the fragment shader
+        // Potentially better pixel by pixel way on the fragment shader
         else{
             cellShaderWSGL = `
             
@@ -699,8 +699,6 @@ class EZWG {
                 @fragment
                 fn fragmentMain(@builtin(position) fragCoord: vec4f) -> @location(0) vec4f {
 
-                    
-
                     var EZ_OUTPUT: FragOutput;
                      
                     let EZ_PARTS_ACROSS_F: f32 = ${this.PARTS_ACROSS}f;
@@ -709,13 +707,13 @@ class EZWG {
                     const EZ_CELL_VALS: u32 = ${this.CELL_VALS}u;
                     const CHUNKS_ACROSS: u32 = ${this.CHUNKS_ACROSS}u;
                     const EZ_CHUNK_SIZE: u32 = ${this.CHUNK_SIZE}u;
-                    let EZ_CELLS_ACROSS_X: u32 = u32( grid.x );
-                    let EZ_CELLS_ACROSS_Y: u32 = u32( grid.y );
+                    var EZ_CELLS_ACROSS_X: u32 = CHUNKS_ACROSS * EZ_CHUNK_SIZE; //u32( grid.x );
+                    var EZ_CELLS_ACROSS_Y: u32 = CHUNKS_ACROSS * EZ_CHUNK_SIZE; //u32( grid.y );
                     let EZ_TOTAL_CELLS = EZ_CELLS_ACROSS_X * EZ_CELLS_ACROSS_Y;
 
                     // Global grid counting each component as a cell
                     var EZ_RAW_COL: u32 = u32(floor(fragCoord.x));
-                    var EZ_RAW_ROW: u32 = u32(floor(fragCoord.y));
+                    var EZ_RAW_ROW: u32 = u32(grid.y - floor(fragCoord.y));
                     
                     let EZ_CELL = vec2f( f32(EZ_RAW_COL / caWu), f32(EZ_RAW_ROW / caWu) );
 
