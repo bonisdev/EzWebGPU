@@ -714,7 +714,7 @@ class EZWG {
                     // Global grid counting each component as a cell
                     var EZ_RAW_COL: u32 = u32(floor(fragCoord.x));
                         // TODO this issue right here
-                    var EZ_RAW_ROW: u32 = (EZ_CELLS_ACROSS_Y*caWu) - u32(floor(fragCoord.y)); 
+                    var EZ_RAW_ROW: u32 = (EZ_CELLS_ACROSS_Y*caWu) - u32(floor(fragCoord.y)) - 1u; 
                     
                     let EZ_CELL = vec2f( f32(EZ_RAW_COL / caWu), f32(EZ_RAW_ROW / caWu) );
 

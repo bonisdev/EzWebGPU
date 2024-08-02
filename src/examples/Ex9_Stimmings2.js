@@ -146,7 +146,7 @@ var Ex9_Stimmings2 = () => {
 
         CELL_VALS: 3,
         
-            FRAG_PIXEL_MODE: true, // switches rendering logic to the fragment shader instead of
+            FRAG_PIXEL_MODE: false, // switches rendering logic to the fragment shader instead of
                                     // many draw calls to two traingle shape 
             PIXEL_PER_COMP: 1,      // this is never used...?
         /*
