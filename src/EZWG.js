@@ -707,13 +707,14 @@ class EZWG {
                     const EZ_CELL_VALS: u32 = ${this.CELL_VALS}u;
                     const CHUNKS_ACROSS: u32 = ${this.CHUNKS_ACROSS}u;
                     const EZ_CHUNK_SIZE: u32 = ${this.CHUNK_SIZE}u;
-                    var EZ_CELLS_ACROSS_X: u32 = CHUNKS_ACROSS * EZ_CHUNK_SIZE; //u32( grid.x );
-                    var EZ_CELLS_ACROSS_Y: u32 = CHUNKS_ACROSS * EZ_CHUNK_SIZE; //u32( grid.y );
+                    var EZ_CELLS_ACROSS_X: u32 = CHUNKS_ACROSS * EZ_CHUNK_SIZE;
+                    var EZ_CELLS_ACROSS_Y: u32 = CHUNKS_ACROSS * EZ_CHUNK_SIZE;
                     let EZ_TOTAL_CELLS = EZ_CELLS_ACROSS_X * EZ_CELLS_ACROSS_Y;
 
                     // Global grid counting each component as a cell
                     var EZ_RAW_COL: u32 = u32(floor(fragCoord.x));
-                    var EZ_RAW_ROW: u32 = u32(grid.y - floor(fragCoord.y));
+                        // TODO this issue right here
+                    var EZ_RAW_ROW: u32 = EZ_CHUNK_SIZE- u32(floor(fragCoord.y));//u32(grid.y - floor(fragCoord.y) - 1);
                     
                     let EZ_CELL = vec2f( f32(EZ_RAW_COL / caWu), f32(EZ_RAW_ROW / caWu) );
 

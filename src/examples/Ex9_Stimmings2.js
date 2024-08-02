@@ -61,16 +61,27 @@ var Ex9_Stimmings2 = () => {
     let fragmentWGSL = 
     `  
 
-        if( EZX < 12u && EZY < 12u ){ 
+        // if( EZ_CHUNK_X == 0 && EZ_CHUNK_Y == 0 ){ 
+        //     EZ_OUTPUT.red = 1;
+        //     EZ_OUTPUT.grn = 0.3;
+        //     EZ_OUTPUT.blu = 0.1;
+        // }
+        // else {
+        //     EZ_OUTPUT.red = 0.2;
+        //     EZ_OUTPUT.grn = 0.1;
+        //     EZ_OUTPUT.blu = 0.8;
+        // } 
+
+        if( EZ_RAW_COL < EZ_CHUNK_SIZE*caWu && EZ_RAW_ROW <  EZ_CHUNK_SIZE*caWu ){ 
             EZ_OUTPUT.red = 1;
             EZ_OUTPUT.grn = 0.3;
-            EZ_OUTPUT.blu = 0.1; 
+            EZ_OUTPUT.blu = 0.1;
         }
-        else { 
+        else {
             EZ_OUTPUT.red = 0.2;
             EZ_OUTPUT.grn = 0.1;
-            EZ_OUTPUT.blu = 0.8; 
-        } 
+            EZ_OUTPUT.blu = 0.8;
+        }
             
 
         // TODO test what quadrant y'all in finna shnngg
@@ -119,10 +130,11 @@ var Ex9_Stimmings2 = () => {
     // Usage example
     let config = {
 
-        CELL_SIZE: 8,
-        CHUNK_SIZE: 32,
-        CHUNKS_ACROSS: 1,
-        PARTS_ACROSS: 8,            // all used in the frag shader...
+        CELL_SIZE: 8,               // How many pixels across one cell is (fragment renderer
+                                    // assumes this number is the same as PARTS_ACROSS)
+        CHUNK_SIZE: 16,
+        CHUNKS_ACROSS: 2,
+        PARTS_ACROSS: 8,            // Note* frag shader considers each part one by one pixel
 
         CELL_VALS: 3,
         
