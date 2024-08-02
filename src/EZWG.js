@@ -714,7 +714,7 @@ class EZWG {
                     // Global grid counting each component as a cell
                     var EZ_RAW_COL: u32 = u32(floor(fragCoord.x));
                         // TODO this issue right here
-                    var EZ_RAW_ROW: u32 = EZ_CHUNK_SIZE- u32(floor(fragCoord.y));//u32(grid.y - floor(fragCoord.y) - 1);
+                    var EZ_RAW_ROW: u32 = (EZ_CELLS_ACROSS_Y*caWu) - u32(floor(fragCoord.y)); 
                     
                     let EZ_CELL = vec2f( f32(EZ_RAW_COL / caWu), f32(EZ_RAW_ROW / caWu) );
 
@@ -730,25 +730,17 @@ class EZWG {
                     let EZX_R = EZX % EZ_CHUNK_SIZE;
                     let EZY_R = EZY % EZ_CHUNK_SIZE;
 
-                    //--------------------------------------------------------- Extra values for drawing
+                    // --------------------------------------------------------- Extra values for drawing
 
                     // Component metas
                     var EZ_COMP_X: u32 = EZ_RAW_COL % caWu;
                     var EZ_COMP_Y: u32 = EZ_RAW_ROW % caWu;
                     var EZ_COMP_IND: u32 = EZ_COMP_X + EZ_COMP_Y * caWu;
- 
-
-                    
-
+					
                     const EZ_cellParts: u32 = ${this.PARTS_ACROSS}u;
-
-
-
-
-
+ 
                     ${this.FRAGMENT_WGSL}
-
-
+					
                     return vec4f(EZ_OUTPUT.red, EZ_OUTPUT.grn, EZ_OUTPUT.blu, 1.0);
                 }
 

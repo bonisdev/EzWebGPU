@@ -61,28 +61,36 @@ var Ex9_Stimmings2 = () => {
     let fragmentWGSL = 
     `  
 
-        // if( EZ_CHUNK_X == 0 && EZ_CHUNK_Y == 0 ){ 
-        //     EZ_OUTPUT.red = 1;
-        //     EZ_OUTPUT.grn = 0.3;
-        //     EZ_OUTPUT.blu = 0.1;
-        // }
-        // else {
-        //     EZ_OUTPUT.red = 0.2;
-        //     EZ_OUTPUT.grn = 0.1;
-        //     EZ_OUTPUT.blu = 0.8;
-        // } 
+         if( EZ_CHUNK_X == 1 && EZ_CHUNK_Y == 1 ){ 
+             EZ_OUTPUT.red = 1;
+             EZ_OUTPUT.grn = 0.3;
+             EZ_OUTPUT.blu = 0.1;
+         }
+         else {
+             EZ_OUTPUT.red = 0.2;
+             EZ_OUTPUT.grn = 0.1;
+			EZ_OUTPUT.blu = 0.8;
+        } 
 
-        if( EZ_RAW_COL < EZ_CHUNK_SIZE*caWu && EZ_RAW_ROW <  EZ_CHUNK_SIZE*caWu ){ 
-            EZ_OUTPUT.red = 1;
-            EZ_OUTPUT.grn = 0.3;
-            EZ_OUTPUT.blu = 0.1;
-        }
-        else {
-            EZ_OUTPUT.red = 0.2;
-            EZ_OUTPUT.grn = 0.1;
-            EZ_OUTPUT.blu = 0.8;
-        }
-            
+        //if( EZ_RAW_COL < EZ_CHUNK_SIZE*caWu && EZ_RAW_ROW <  EZ_CHUNK_SIZE*caWu ){ 
+        //    EZ_OUTPUT.red = 0.87;
+        //    EZ_OUTPUT.grn = 0.45;
+        //    EZ_OUTPUT.blu = 0.3;
+        //}
+        //else {
+        //    EZ_OUTPUT.red = 0.1;
+        //    EZ_OUTPUT.grn = 0.1;
+        //    EZ_OUTPUT.blu = 0.1;
+        //}
+		
+		
+		if(EZ_RAW_COL%4==0){
+            EZ_OUTPUT.grn = 0.91;
+		}
+		if(EZ_RAW_ROW%4==0){
+            EZ_OUTPUT.blu = 0.91;
+		}
+		
 
         // TODO test what quadrant y'all in finna shnngg
         
@@ -138,7 +146,7 @@ var Ex9_Stimmings2 = () => {
 
         CELL_VALS: 3,
         
-            FRAG_PIXEL_MODE: false, // switches rendering logic to the fragment shader instead of
+            FRAG_PIXEL_MODE: true, // switches rendering logic to the fragment shader instead of
                                     // many draw calls to two traingle shape 
             PIXEL_PER_COMP: 1,      // this is never used...?
         /*
