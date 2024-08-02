@@ -32,11 +32,16 @@ var Ex9_Stimmings2 = () => {
 
         var bufferInd: u32 = EZ_CELL_IND + 0u * EZ_TOTAL_CELLS;
         var myState: u32 = EZ_STATE_IN[ bufferInd ];
+
+        var lastRand: u32 = EZ_STATE_IN[ EZ_CELL_IND + 1u * EZ_TOTAL_CELLS ];
+        EZ_STATE_OUT[ EZ_CELL_IND + 1u * EZ_TOTAL_CELLS ] = u32( 255*EZ_RAND((EZX+EZY+lastRand)%255) );
  
         // Hadnle the mouse input here
         // Here's the addition of mouse handling 
         //      'incrementer' variable for each f32 or u32 value in memory  
         cellAttribute = 0u;
+
+        
 
         // Get the min max of the input coordinattres
         var minX: u32 = min( u32(EZ_USER_INPUT[0]),  u32(EZ_USER_INPUT[2]));
@@ -61,16 +66,16 @@ var Ex9_Stimmings2 = () => {
     let fragmentWGSL = 
     `  
 
-         if( EZ_CHUNK_X == 1 && EZ_CHUNK_Y == 1 ){ 
-             EZ_OUTPUT.red = 1;
-             EZ_OUTPUT.grn = 0.3;
-             EZ_OUTPUT.blu = 0.1;
-         }
-         else {
-             EZ_OUTPUT.red = 0.2;
-             EZ_OUTPUT.grn = 0.1;
-			EZ_OUTPUT.blu = 0.8;
-        } 
+        //  if( EZ_CHUNK_X == 1 && EZ_CHUNK_Y == 1 ){ 
+        //      EZ_OUTPUT.red = 1;
+        //      EZ_OUTPUT.grn = 0.3;
+        //      EZ_OUTPUT.blu = 0.1;
+        //  }
+        //  else {
+        //      EZ_OUTPUT.red = 0.2;
+        //      EZ_OUTPUT.grn = 0.1;
+		// 	EZ_OUTPUT.blu = 0.8;
+        // } 
 
         //if( EZ_RAW_COL < EZ_CHUNK_SIZE*caWu && EZ_RAW_ROW <  EZ_CHUNK_SIZE*caWu ){ 
         //    EZ_OUTPUT.red = 0.87;
@@ -83,6 +88,9 @@ var Ex9_Stimmings2 = () => {
         //    EZ_OUTPUT.blu = 0.1;
         //}
 		
+        EZ_OUTPUT.red = 0;
+        EZ_OUTPUT.grn = 0;
+        EZ_OUTPUT.blu = 0;
 		
 		if(EZ_RAW_COL%4==0){
             EZ_OUTPUT.grn = 0.91;
@@ -93,22 +101,22 @@ var Ex9_Stimmings2 = () => {
 		
 
         // TODO test what quadrant y'all in finna shnngg
-        
-        // if (pixelIndex >= 0 && pixelIndex < i32(grid.x * grid.y) * 8 * 8 ) {
-        //     let cell = EZ_STATE_IN[cellIndex];
-        //     let entityType = cell; // Assuming cell holds the entity type 
-        //     if (entityType > 0u) {
-        //        var colorVec = EZ_STORAGE[(64u * (entityType - 1u)) + u32(x%8) + u32(y%8)*8];
-        //        r = f32(colorVec & 0xFF) / 255.0;
-        //        g = f32((colorVec >> 8) & 0xFF) / 255.0;
-        //        b = f32((colorVec >> 16) & 0xFF) / 255.0;
-        //     } 
-        // }
-        // else{
-        //     r = 0.5;
-        //     g = 1.0;
-        //     b = 1.0;
-        // }
+         
+        let cell = EZ_STATE_IN[ EZ_CELL_IND ];
+        let entityType = cell; // Assuming cell holds the entity type 
+        if (entityType > 0u) {
+            var colorVec = EZ_STORAGE[(64u * (entityType - 1u)) + (EZ_COMP_X) + (EZ_COMP_Y)*8];
+            EZ_OUTPUT.red = f32(colorVec & 0xFF) / 255.0;
+            EZ_OUTPUT.grn = f32((colorVec >> 8) & 0xFF) / 255.0;
+            EZ_OUTPUT.blu = f32((colorVec >> 16) & 0xFF) / 255.0;
+        }
+        else {
+            var randVal: f32 = f32(EZ_STATE_IN[ EZ_CELL_IND + 1u*EZ_TOTAL_CELLS]);
+            randVal = randVal / 255.0;
+            EZ_OUTPUT.red = randVal;
+            EZ_OUTPUT.grn = randVal;
+            EZ_OUTPUT.blu = randVal;
+        }
     `;
 
 
@@ -140,13 +148,13 @@ var Ex9_Stimmings2 = () => {
 
         CELL_SIZE: 8,               // How many pixels across one cell is (fragment renderer
                                     // assumes this number is the same as PARTS_ACROSS)
-        CHUNK_SIZE: 16,
+        CHUNK_SIZE: 256,
         CHUNKS_ACROSS: 2,
         PARTS_ACROSS: 8,            // Note* frag shader considers each part one by one pixel
 
         CELL_VALS: 3,
         
-            FRAG_PIXEL_MODE: false, // switches rendering logic to the fragment shader instead of
+            FRAG_PIXEL_MODE: true, // switches rendering logic to the fragment shader instead of
                                     // many draw calls to two traingle shape 
             PIXEL_PER_COMP: 1,      // this is never used...?
         /*
