@@ -59,30 +59,41 @@ var Ex9_Stimmings2 = () => {
     `;
 
     let fragmentWGSL = 
-    `
-        var rrr: f32 = 0;
-        var ggg: f32 = 0;
-        var bbb: f32 = 0;
+    `  
+        var xx = ( EZ_RAW_COL / ( u32(grid.x)*8u ) );
+        var yy = ( EZ_RAW_ROW / ( u32(grid.y)*8u ) );
+        let cellIndex = yy * u32(grid.x) + xx; 
+ 
+
+        if( EZ_RAW_ROW < 12u && EZ_RAW_COL < 12u ){ 
+            EZ_OUTPUT.red = 1;
+            EZ_OUTPUT.grn = 0.3;
+            EZ_OUTPUT.blu = 0.1; 
+        }
+        else { 
+            EZ_OUTPUT.red = 0.2;
+            EZ_OUTPUT.grn = 0.1;
+            EZ_OUTPUT.blu = 0.8; 
+        } 
+            
+
+        // TODO test what quadrant y'all in finna shnngg
         
-        let cellAttIndex: u32 = 0u;
-        var entityType: u32 = EZ_CELL_VAL( EZX, 0, EZY, 0, cellAttIndex );
-        //      EZ_STATE_IN[ EZ_CELL_IND + (0u) * EZ_TOTAL_CELLS ];
-
-        if( entityType > 0 ){
-            var vecc: vec4<u32> = EZ_U32_TO_VEC4( EZ_STORAGE[ (64*(entityType-1u)) + EZ_COMP_IND ] );
-            rrr = f32(vecc.x) / 255.0f;
-            ggg = f32(vecc.y) / 255.0f;
-            bbb = f32(vecc.z) / 255.0f;
-        }
-        else{
-            rrr = 0;
-            ggg = 0;
-            bbb = 0;
-        }
-
-        EZ_OUTPUT.red = rrr;
-        EZ_OUTPUT.grn = ggg;
-        EZ_OUTPUT.blu = bbb; 
+        // if (pixelIndex >= 0 && pixelIndex < i32(grid.x * grid.y) * 8 * 8 ) {
+        //     let cell = EZ_STATE_IN[cellIndex];
+        //     let entityType = cell; // Assuming cell holds the entity type 
+        //     if (entityType > 0u) {
+        //        var colorVec = EZ_STORAGE[(64u * (entityType - 1u)) + u32(x%8) + u32(y%8)*8];
+        //        r = f32(colorVec & 0xFF) / 255.0;
+        //        g = f32((colorVec >> 8) & 0xFF) / 255.0;
+        //        b = f32((colorVec >> 16) & 0xFF) / 255.0;
+        //     } 
+        // }
+        // else{
+        //     r = 0.5;
+        //     g = 1.0;
+        //     b = 1.0;
+        // }
     `;
 
 
@@ -119,8 +130,9 @@ var Ex9_Stimmings2 = () => {
 
         CELL_VALS: 3,
         
-            FRAG_PIXEL_MODE: true,
-            PIXEL_PER_COMP: 1,
+            FRAG_PIXEL_MODE: false, // switches rendering logic to the fragment shader instead of
+                                    // many draw calls to two traingle shape 
+            PIXEL_PER_COMP: 1,      //
         /*
         Slot( 0 )  	// 0x0000FFFF		0x00FF0000 		//0xFF000000
 					EntType				TEAM			CPU TAG

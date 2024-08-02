@@ -506,237 +506,276 @@ class EZWG {
 			bindGroupLayouts: [ bindGroupLayout ],
 		});
 
-        var cellShaderWSGL = `
+        var cellShaderWSGL = '';
+        
+        // Normal vertices (clunky)
+        if( !this.FRAG_PIXEL_MODE ){
+            cellShaderWSGL = `
+                struct VertexOutput {
+                    @builtin(position) position: vec4f,
+                    @location(0) cell: vec2f,
+                    @location(1) red: f32,
+                    @location(2) grn: f32,
+                    @location(3) blu: f32
+                };
 
-            ${
-                !this.FRAG_PIXEL_MODE ? (
-                    `
-                    struct VertexOutput {
-                        @builtin(position) position: vec4f,
-                        @location(0) cell: vec2f,
-                        @location(1) red: f32,
-                        @location(2) grn: f32,
-                        @location(3) blu: f32
-                    };
-                    `
-                ) : (
-                    `
-                    struct VertexOutput {
-                        @builtin(position) position: vec4f,
-                    };
-                    `
-                )
-            } 
+                @group(0) @binding(0) var<uniform> grid: vec2f;
+                @group(0) @binding(1) var<storage> EZ_STATE_IN: array<${this.BUFFER_TYPE}>; 
+                @group(0) @binding(4) var<storage> EZ_STORAGE: array<${this.STORAGE_TYPE}>;
 
-			@group(0) @binding(0) var<uniform> grid: vec2f;
-			@group(0) @binding(1) var<storage> EZ_STATE_IN: array<${this.BUFFER_TYPE}>; 
-			@group(0) @binding(4) var<storage> EZ_STORAGE: array<${this.STORAGE_TYPE}>;
+                // Confines to a chunk location
+                fn EZ_helper_cellIndexChkRel(cell: vec2u, ogcx: u32, ogcy: u32, chk: u32) -> u32 {
+                    var nuCellX: u32 = cell.x + (ogcx*chk);
+                    var nuCellY: u32 = cell.y + (ogcy*chk);
+                    return ((nuCellY+u32(grid.y)) % u32(grid.y)) * u32(grid.x) + ((nuCellX+u32(grid.x)) % u32(grid.x));
+                }
 
-            // Confines to a chunk location
-            fn EZ_helper_cellIndexChkRel(cell: vec2u, ogcx: u32, ogcy: u32, chk: u32) -> u32 {
-                var nuCellX: u32 = cell.x + (ogcx*chk);
-                var nuCellY: u32 = cell.y + (ogcy*chk);
-				return ((nuCellY+u32(grid.y)) % u32(grid.y)) * u32(grid.x) + ((nuCellX+u32(grid.x)) % u32(grid.x));
-			}
+                // Use any X,Y, deltaX, deltaY, attribute
+                fn EZ_CELL_VAL(x: u32, dx: i32, y: u32, dy: i32, att: u32 ) -> ${this.BUFFER_TYPE} {
+                    var eex: u32 = u32(( i32(x) + dx) + ${this.CHUNK_SIZE}) % ${this.CHUNK_SIZE};
+                    var eey: u32 = u32(( i32(y) + dy) + ${this.CHUNK_SIZE}) % ${this.CHUNK_SIZE};
+                    var ocxx: u32 = u32( x / ${this.CHUNK_SIZE} );
+                    var ocyy: u32 = u32( y / ${this.CHUNK_SIZE} );
+                    return EZ_STATE_IN[ att * u32( grid.x * grid.y ) + EZ_helper_cellIndexChkRel( vec2( eex, eey ), ocxx, ocyy, ${this.CHUNK_SIZE}u )  ];
+                }
 
-            // Use any X,Y, deltaX, deltaY, attribute
-            fn EZ_CELL_VAL(x: u32, dx: i32, y: u32, dy: i32, att: u32 ) -> ${this.BUFFER_TYPE} {
-                var eex: u32 = u32(( i32(x) + dx) + ${this.CHUNK_SIZE}) % ${this.CHUNK_SIZE};
-                var eey: u32 = u32(( i32(y) + dy) + ${this.CHUNK_SIZE}) % ${this.CHUNK_SIZE};
-                var ocxx: u32 = u32( x / ${this.CHUNK_SIZE} );
-                var ocyy: u32 = u32( y / ${this.CHUNK_SIZE} );
-				return EZ_STATE_IN[ att * u32( grid.x * grid.y ) + EZ_helper_cellIndexChkRel( vec2( eex, eey ), ocxx, ocyy, ${this.CHUNK_SIZE}u )  ];
-			}
+                
+                fn EZ_RAND( seed: u32 ) -> f32 {
+                    let a: u32 = 1664525u;
+                    var c: u32 = 1013904223u;
+                    c = a * seed + c;
+                    return f32(c & 0x00FFFFFFu)  / f32(0x01000000u);
+                }
 
-            
-            fn EZ_RAND( seed: u32 ) -> f32 {
-                let a: u32 = 1664525u;
-                var c: u32 = 1013904223u;
-                c = a * seed + c;
-                return f32(c & 0x00FFFFFFu)  / f32(0x01000000u);
-            }
+                fn EZ_U32_TO_VEC4(value: u32) -> vec4<u32> {
+                    // Extract each byte using bitwise operations
+                    let byte0: u32 = (value & 0x000000FF);
+                    let byte1: u32 = (value >> 8) & 0x000000FF;
+                    let byte2: u32 = (value >> 16) & 0x000000FF;
+                    let byte3: u32 = (value >> 24) & 0x000000FF;
+                
+                    // Return as a vector
+                    return vec4<u32>(byte0, byte1, byte2, byte3);
+                }
 
-            fn EZ_U32_TO_VEC4(value: u32) -> vec4<u32> {
-                // Extract each byte using bitwise operations
-                let byte0: u32 = (value & 0x000000FF);
-                let byte1: u32 = (value >> 8) & 0x000000FF;
-                let byte2: u32 = (value >> 16) & 0x000000FF;
-                let byte3: u32 = (value >> 24) & 0x000000FF;
-            
-                // Return as a vector
-                return vec4<u32>(byte0, byte1, byte2, byte3);
-            }
-            
+                @vertex
+                fn vertexMain(@location(0) position: vec2f, @builtin(instance_index) EZ_INSTANCE: u32) -> VertexOutput {
+                    var EZ_OUTPUT: VertexOutput;
+                    
+                    var i = f32(EZ_INSTANCE);
+                    let EZ_PARTS_ACROSS_F: f32 = ${this.PARTS_ACROSS}f;
+                    let caWu: u32 = ${this.PARTS_ACROSS}u;
 
-            
-            ${  // Normal dual triangle fiasco
-                this.FRAG_PIXEL_MODE ? (
-                    `
-                    @vertex
-                    fn vertexMain(@location(0) position: vec2f) -> VertexOutput {
-                        var output: VertexOutput;
-                        output.position = vec4f(position, 0.0, 1.0);
-                        return output;
-                    }
-                    `
-                ) : (
-                    `
-                    @vertex
-                    fn vertexMain(@location(0) position: vec2f, @builtin(instance_index) EZ_INSTANCE: u32) -> VertexOutput {
-                        var EZ_OUTPUT: VertexOutput;
-                        
-                        var i = f32(EZ_INSTANCE);
-                        let EZ_PARTS_ACROSS_F: f32 = ${this.PARTS_ACROSS}f;
-                        let caWu: u32 = ${this.PARTS_ACROSS}u;
+                    const EZ_CELL_VALS: u32 = ${this.CELL_VALS}u;
+                    const CHUNKS_ACROSS: u32 = ${this.CHUNKS_ACROSS}u;
+                    const EZ_CHUNK_SIZE: u32 = ${this.CHUNK_SIZE}u;
+                    let EZ_CELLS_ACROSS_X: u32 = u32( grid.x );
+                    let EZ_CELLS_ACROSS_Y: u32 = u32( grid.y );
+                    let EZ_TOTAL_CELLS = EZ_CELLS_ACROSS_X * EZ_CELLS_ACROSS_Y;
 
-                        const EZ_CELL_VALS: u32 = ${this.CELL_VALS}u;
-                        const CHUNKS_ACROSS: u32 = ${this.CHUNKS_ACROSS}u;
-                        const EZ_CHUNK_SIZE: u32 = ${this.CHUNK_SIZE}u;
-                        let EZ_CELLS_ACROSS_X: u32 = u32( grid.x );
-                        let EZ_CELLS_ACROSS_Y: u32 = u32( grid.y );
-                        let EZ_TOTAL_CELLS = EZ_CELLS_ACROSS_X * EZ_CELLS_ACROSS_Y;
+                    // Global grid counting each component as a cell
+                        // now used in another context
+                    // var EZ_RAW_COL: u32 = EZ_INSTANCE % (EZ_CELLS_ACROSS_X * caWu);
+                    // var EZ_RAW_ROW: u32 = EZ_INSTANCE / (EZ_CELLS_ACROSS_Y * caWu); 
+                    
+                    var EZ_RAW_COL: u32 = EZ_INSTANCE % (EZ_CELLS_ACROSS_X * caWu);
+                    var EZ_RAW_ROW: u32 = EZ_INSTANCE / (EZ_CELLS_ACROSS_Y * caWu); 
+                    
+                    let EZ_CELL = vec2f( f32(EZ_RAW_COL / caWu), f32(EZ_RAW_ROW / caWu) );
 
-                        // Global grid counting each component as a cell
-                            // now used in another context
-                        // var EZ_RAW_COL: u32 = EZ_INSTANCE % (EZ_CELLS_ACROSS_X * caWu);
-                        // var EZ_RAW_ROW: u32 = EZ_INSTANCE / (EZ_CELLS_ACROSS_Y * caWu);
-                        ${
-                            !this.FRAG_PIXEL_MODE ? "var EZ_RAW_COL: u32 = EZ_INSTANCE % (EZ_CELLS_ACROSS_X * caWu);\nvar EZ_RAW_ROW: u32 = EZ_INSTANCE / (EZ_CELLS_ACROSS_Y * caWu);" 
-                            :
-                            "var EZ_RAW_COL: u32 = u32(floor(fragCoord.x));\nvar EZ_RAW_ROW: u32 = u32(floor(fragCoord.y));"
-                        }
-                        let EZ_CELL = vec2f( f32(EZ_RAW_COL / caWu), f32(EZ_RAW_ROW / caWu) );
+                    var EZX: u32 = EZ_RAW_COL / caWu;
+                    var EZY: u32 = EZ_RAW_ROW / caWu;
+                    var EZ_CELL_IND: u32 = EZX + ( EZY * EZ_CELLS_ACROSS_X);
 
-                        var EZX: u32 = EZ_RAW_COL / caWu;
-                        var EZY: u32 = EZ_RAW_ROW / caWu;
-                        var EZ_CELL_IND: u32 = EZX + ( EZY * EZ_CELLS_ACROSS_X);
+                    var EZ_CHUNK_X: u32 = EZX / EZ_CHUNK_SIZE;
+                    var EZ_CHUNK_Y: u32 = EZY / EZ_CHUNK_SIZE;
+                    var EZ_CHUNK_IND: u32 = (EZ_CHUNK_X  + EZ_CHUNK_Y * CHUNKS_ACROSS);
+                    
+                    // Cell coordinates relative to their respective chunk
+                    let EZX_R = EZX % EZ_CHUNK_SIZE;
+                    let EZY_R = EZY % EZ_CHUNK_SIZE;
 
-                        var EZ_CHUNK_X: u32 = EZX / EZ_CHUNK_SIZE;
-                        var EZ_CHUNK_Y: u32 = EZY / EZ_CHUNK_SIZE;
-                        var EZ_CHUNK_IND: u32 = (EZ_CHUNK_X  + EZ_CHUNK_Y * CHUNKS_ACROSS);
-                        
-                        // Cell coordinates relative to their respective chunk
-                        let EZX_R = EZX % EZ_CHUNK_SIZE;
-                        let EZY_R = EZY % EZ_CHUNK_SIZE;
+                    //--------------------------------------------------------- Extra values for drawing
 
-                        //--------------------------------------------------------- Extra values for drawing
+                    // Component metas
+                    var EZ_COMP_X: u32 = EZ_RAW_COL % caWu;
+                    var EZ_COMP_Y: u32 = EZ_RAW_ROW % caWu;
+                    var EZ_COMP_IND: u32 = EZ_COMP_X + EZ_COMP_Y * caWu;
 
-                        // Component metas
-                        var EZ_COMP_X: u32 = EZ_RAW_COL % caWu;
-                        var EZ_COMP_Y: u32 = EZ_RAW_ROW % caWu;
-                        var EZ_COMP_IND: u32 = EZ_COMP_X + EZ_COMP_Y * caWu;
+                    // Gets you to the center of the cell
+                    let EZ_h_cellOffset: vec2f = EZ_CELL / grid * 2;
+                    var EZ_h_pos = (position+1) / grid - 1 + EZ_h_cellOffset;
 
-                        // Gets you to the center of the cell
-                        let EZ_h_cellOffset: vec2f = EZ_CELL / grid * 2;
-                        var EZ_h_pos = (position+1) / grid - 1 + EZ_h_cellOffset;
+                    // Cell size 
+                    var EZ_h_clsX: f32 = (1 / grid.x) * 2;
+                    var EZ_h_clsY: f32 = (1 / grid.y) * 2;
+                    var EZ_h_smlDx: f32 = (1/EZ_PARTS_ACROSS_F) * EZ_h_clsX;
+                    var EZ_h_smlDy: f32 = (1/EZ_PARTS_ACROSS_F) * EZ_h_clsY;
 
-                        // Cell size 
-                        var EZ_h_clsX: f32 = (1 / grid.x) * 2;
-                        var EZ_h_clsY: f32 = (1 / grid.y) * 2;
-                        var EZ_h_smlDx: f32 = (1/EZ_PARTS_ACROSS_F) * EZ_h_clsX;
-                        var EZ_h_smlDy: f32 = (1/EZ_PARTS_ACROSS_F) * EZ_h_clsY;
+                    EZ_h_pos.x = EZ_h_pos.x + (f32(EZ_COMP_X) * EZ_h_smlDx) - (EZ_h_clsX*0.5) + EZ_h_smlDx/2;
+                    EZ_h_pos.y = EZ_h_pos.y + (f32(EZ_COMP_Y) * EZ_h_smlDy) - (EZ_h_clsY*0.5) + EZ_h_smlDy/2;
 
-                        EZ_h_pos.x = EZ_h_pos.x + (f32(EZ_COMP_X) * EZ_h_smlDx) - (EZ_h_clsX*0.5) + EZ_h_smlDx/2;
-                        EZ_h_pos.y = EZ_h_pos.y + (f32(EZ_COMP_Y) * EZ_h_smlDy) - (EZ_h_clsY*0.5) + EZ_h_smlDy/2;
-
-                        EZ_OUTPUT.position = vec4f(EZ_h_pos, 0, 1);
-                        EZ_OUTPUT.cell = EZ_CELL / (grid*1);
-
-                        
-
-                        const EZ_cellParts: u32 = ${this.PARTS_ACROSS}u; 
-                        
-                        
-
-                        ${this.FRAGMENT_WGSL}
-                        
-
-                        return EZ_OUTPUT;
-                    }
-                    `
-                )
-            }
-			
-
-
-            ${  // Normal dual triangle fiasco
-                !this.FRAG_PIXEL_MODE ? (
-                    `
-                    @fragment
-                    fn fragmentMain(input: VertexOutput) -> @location(0) vec4f { 
-                        return vec4f( input.red, input.grn, input.blu, 1);
-                    }
-                    `
-                ) : (
-                    `
-                    @fragment
-                    fn fragmentMain(@builtin(position) fragCoord: vec4f) -> @location(0) vec4f {
+                    EZ_OUTPUT.position = vec4f(EZ_h_pos, 0, 1);
+                    EZ_OUTPUT.cell = EZ_CELL / (grid*1);
 
                     
 
-                        var paAcross: i32 = ${this.PARTS_ACROSS};
+                    const EZ_cellParts: u32 = ${this.PARTS_ACROSS}u; 
+                    
+                    
 
+                    ${this.FRAGMENT_WGSL}
+                    
 
+                    return EZ_OUTPUT;
+                }
 
-                        var gridSize = grid;
-                        var x = i32(floor(fragCoord.x));
-                        var y = i32(floor(fragCoord.y));
-                        var xx = ( x / ( i32(gridSize.x)*8 ) );
-                        var yy = ( y / ( i32(gridSize.y)*8 ) );
-                        let cellIndex = yy * i32(gridSize.x) + xx;
-                        var pixelIndex = y * i32(gridSize.x*8) + x;
+                @fragment
+                fn fragmentMain(input: VertexOutput) -> @location(0) vec4f { 
+                    return vec4f( input.red, input.grn, input.blu, 1);
+                }
 
-                        var r: f32 = 1.0;
-                        var g: f32 = 0.2;
-                        var b: f32 = 0.3;
+            `
+        }
+        // Weird pixel by pixel way on the fragment shader
+        else{
+            cellShaderWSGL = `
+            
+                struct VertexOutput {
+                    @builtin(position) position: vec4f,
+                };
+                struct FragOutput {
+                    @location(0) red: f32,
+                    @location(1) grn: f32,
+                    @location(2) blu: f32
+                };
+                
+                @group(0) @binding(0) var<uniform> grid: vec2f;
+                @group(0) @binding(1) var<storage> EZ_STATE_IN: array<${this.BUFFER_TYPE}>; 
+                @group(0) @binding(4) var<storage> EZ_STORAGE: array<${this.STORAGE_TYPE}>;
 
-                        if( xx < 32/2 && yy < 32/2 ){
-                            r = 0.1;
-                            g = 0.3;
-                            b = 0.1;
-                        }
-                        else if( xx >= 32/2 && yy < 32/2 ){
-                            r = 0.5;
-                            g = 0.1;
-                            b = 0.1;
-                        }
-                        else if( xx >= 32/2 && yy >= 32/2 ){
-                            r = 0.1;
-                            g = 0.6;
-                            b = 0.1;
-                        }
-                        else if( xx < 32/2 && yy >= 32/2 ){
-                            r = 0.1;
-                            g = 0.3;
-                            b = 0.6;
-                        }
-                         
+                // Confines to a chunk location
+                fn EZ_helper_cellIndexChkRel(cell: vec2u, ogcx: u32, ogcy: u32, chk: u32) -> u32 {
+                    var nuCellX: u32 = cell.x + (ogcx*chk);
+                    var nuCellY: u32 = cell.y + (ogcy*chk);
+                    return ((nuCellY+u32(grid.y)) % u32(grid.y)) * u32(grid.x) + ((nuCellX+u32(grid.x)) % u32(grid.x));
+                }
 
-                        // TODO test what quadrant y'all in finna shnngg
-                        
-                        // if (pixelIndex >= 0 && pixelIndex < i32(gridSize.x * gridSize.y) * 8 * 8 ) {
-                        //     let cell = EZ_STATE_IN[cellIndex];
-                        //     let entityType = cell; // Assuming cell holds the entity type 
-                        //     if (entityType > 0u) {
-                        //        var colorVec = EZ_STORAGE[(64u * (entityType - 1u)) + u32(x%8) + u32(y%8)*8];
-                        //        r = f32(colorVec & 0xFF) / 255.0;
-                        //        g = f32((colorVec >> 8) & 0xFF) / 255.0;
-                        //        b = f32((colorVec >> 16) & 0xFF) / 255.0;
-                        //     } 
-                        // }
-                        // else{
-                        //     r = 0.5;
-                        //     g = 1.0;
-                        //     b = 1.0;
-                        // }
+                // Use any X,Y, deltaX, deltaY, attribute
+                fn EZ_CELL_VAL(x: u32, dx: i32, y: u32, dy: i32, att: u32 ) -> ${this.BUFFER_TYPE} {
+                    var eex: u32 = u32(( i32(x) + dx) + ${this.CHUNK_SIZE}) % ${this.CHUNK_SIZE};
+                    var eey: u32 = u32(( i32(y) + dy) + ${this.CHUNK_SIZE}) % ${this.CHUNK_SIZE};
+                    var ocxx: u32 = u32( x / ${this.CHUNK_SIZE} );
+                    var ocyy: u32 = u32( y / ${this.CHUNK_SIZE} );
+                    return EZ_STATE_IN[ att * u32( grid.x * grid.y ) + EZ_helper_cellIndexChkRel( vec2( eex, eey ), ocxx, ocyy, ${this.CHUNK_SIZE}u )  ];
+                }
 
-                        return vec4f(r, g, b, 1.0);
-                    }
-                    `
-                )
-            } 
-		`;
+                
+                fn EZ_RAND( seed: u32 ) -> f32 {
+                    let a: u32 = 1664525u;
+                    var c: u32 = 1013904223u;
+                    c = a * seed + c;
+                    return f32(c & 0x00FFFFFFu)  / f32(0x01000000u);
+                }
+
+                fn EZ_U32_TO_VEC4(value: u32) -> vec4<u32> {
+                    // Extract each byte using bitwise operations
+                    let byte0: u32 = (value & 0x000000FF);
+                    let byte1: u32 = (value >> 8) & 0x000000FF;
+                    let byte2: u32 = (value >> 16) & 0x000000FF;
+                    let byte3: u32 = (value >> 24) & 0x000000FF;
+                
+                    // Return as a vector
+                    return vec4<u32>(byte0, byte1, byte2, byte3);
+                }
+
+                @vertex
+                fn vertexMain(@location(0) position: vec2f) -> VertexOutput {
+                    var output: VertexOutput;
+                    output.position = vec4f(position, 0.0, 1.0);
+                    return output;
+                }
+
+                @fragment
+                fn fragmentMain(@builtin(position) fragCoord: vec4f) -> @location(0) vec4f {
+
+                    
+
+                    var EZ_OUTPUT: FragOutput;
+                     
+                    let EZ_PARTS_ACROSS_F: f32 = ${this.PARTS_ACROSS}f;
+                    let caWu: u32 = ${this.PARTS_ACROSS}u;
+
+                    const EZ_CELL_VALS: u32 = ${this.CELL_VALS}u;
+                    const CHUNKS_ACROSS: u32 = ${this.CHUNKS_ACROSS}u;
+                    const EZ_CHUNK_SIZE: u32 = ${this.CHUNK_SIZE}u;
+                    let EZ_CELLS_ACROSS_X: u32 = u32( grid.x );
+                    let EZ_CELLS_ACROSS_Y: u32 = u32( grid.y );
+                    let EZ_TOTAL_CELLS = EZ_CELLS_ACROSS_X * EZ_CELLS_ACROSS_Y;
+
+                    // Global grid counting each component as a cell
+                    var EZ_RAW_COL: u32 = u32(floor(fragCoord.x));
+                    var EZ_RAW_ROW: u32 = u32(floor(fragCoord.y));
+                    
+                    let EZ_CELL = vec2f( f32(EZ_RAW_COL / caWu), f32(EZ_RAW_ROW / caWu) );
+
+                    var EZX: u32 = EZ_RAW_COL / caWu;
+                    var EZY: u32 = EZ_RAW_ROW / caWu;
+                    var EZ_CELL_IND: u32 = EZX + ( EZY * EZ_CELLS_ACROSS_X);
+
+                    var EZ_CHUNK_X: u32 = EZX / EZ_CHUNK_SIZE;
+                    var EZ_CHUNK_Y: u32 = EZY / EZ_CHUNK_SIZE;
+                    var EZ_CHUNK_IND: u32 = (EZ_CHUNK_X  + EZ_CHUNK_Y * CHUNKS_ACROSS);
+                    
+                    // Cell coordinates relative to their respective chunk
+                    let EZX_R = EZX % EZ_CHUNK_SIZE;
+                    let EZY_R = EZY % EZ_CHUNK_SIZE;
+
+                    //--------------------------------------------------------- Extra values for drawing
+
+                    // Component metas
+                    var EZ_COMP_X: u32 = EZ_RAW_COL % caWu;
+                    var EZ_COMP_Y: u32 = EZ_RAW_ROW % caWu;
+                    var EZ_COMP_IND: u32 = EZ_COMP_X + EZ_COMP_Y * caWu;
  
+
+                    
+
+                    const EZ_cellParts: u32 = ${this.PARTS_ACROSS}u;
+
+
+
+
+
+                    ${this.FRAGMENT_WGSL}
+
+
+                    return vec4f(EZ_OUTPUT.red, EZ_OUTPUT.grn, EZ_OUTPUT.blu, 1.0);
+                }
+
+            `;
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 		// Create the shader that will render the cells.
 		const cellShaderModule = this.device.createShaderModule({
