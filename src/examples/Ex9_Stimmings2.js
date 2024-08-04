@@ -65,28 +65,6 @@ var Ex9_Stimmings2 = () => {
 
     let fragmentWGSL = 
     `  
-
-        //  if( EZ_CHUNK_X == 1 && EZ_CHUNK_Y == 1 ){ 
-        //      EZ_OUTPUT.red = 1;
-        //      EZ_OUTPUT.grn = 0.3;
-        //      EZ_OUTPUT.blu = 0.1;
-        //  }
-        //  else {
-        //      EZ_OUTPUT.red = 0.2;
-        //      EZ_OUTPUT.grn = 0.1;
-		// 	EZ_OUTPUT.blu = 0.8;
-        // } 
-
-        //if( EZ_RAW_COL < EZ_CHUNK_SIZE*caWu && EZ_RAW_ROW <  EZ_CHUNK_SIZE*caWu ){ 
-        //    EZ_OUTPUT.red = 0.87;
-        //    EZ_OUTPUT.grn = 0.45;
-        //    EZ_OUTPUT.blu = 0.3;
-        //}
-        //else {
-        //    EZ_OUTPUT.red = 0.1;
-        //    EZ_OUTPUT.grn = 0.1;
-        //    EZ_OUTPUT.blu = 0.1;
-        //}
 		
         EZ_OUTPUT.red = 0;
         EZ_OUTPUT.grn = 0;
@@ -140,7 +118,9 @@ var Ex9_Stimmings2 = () => {
     let packedPixels = 
         EZWG.processImagePixels(document.getElementById('exmplSprite1'), 8, 8).concat(
             EZWG.processImagePixels(document.getElementById('exmplSprite2'), 8, 8)
-        ); 
+        );
+
+    var lastReadBackTime = Date.now();
 
 
     // Usage example
@@ -148,8 +128,8 @@ var Ex9_Stimmings2 = () => {
 
         CELL_SIZE: 8,               // How many pixels across one cell is (fragment renderer
                                     // assumes this number is the same as PARTS_ACROSS)
-        CHUNK_SIZE: 256,
-        CHUNKS_ACROSS: 2,
+        CHUNK_SIZE: 128,
+        CHUNKS_ACROSS: 1,
         PARTS_ACROSS: 8,            // Note* frag shader considers each part one by one pixel
 
         CELL_VALS: 3,
@@ -157,6 +137,15 @@ var Ex9_Stimmings2 = () => {
             FRAG_PIXEL_MODE: true, // switches rendering logic to the fragment shader instead of
                                     // many draw calls to two traingle shape 
             PIXEL_PER_COMP: 1,      // this is never used...?
+    
+        READ_BACK_FREQ: 100,     // Every 15 time steps read back the gpu buffer
+        READ_BACK_FUNC: ( currentStep, entireBuffer ) => {
+            console.log('entireBuffer', entireBuffer.length);
+            console.log('currentStep')
+            let diffinTime = Date.now();
+            console.log(`${diffinTime - lastReadBackTime}`)
+            lastReadBackTime = diffinTime
+        },
         /*
         Slot( 0 )  	// 0x0000FFFF		0x00FF0000 		//0xFF000000
 					EntType				TEAM			CPU TAG
@@ -219,6 +208,6 @@ var Ex9_Stimmings2 = () => {
 
     // Intital set the default runner to this
     EZ_EXAMPLE = new EZWG( config);
-    EZ_EXAMPLE.UPDATE_INTERVAL = 50;
+    EZ_EXAMPLE.UPDATE_INTERVAL = 20;
     
 };
