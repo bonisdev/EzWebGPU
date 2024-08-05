@@ -569,6 +569,18 @@ class EZWG {
                     // Return as a vector
                     return vec4<u32>(byte0, byte1, byte2, byte3);
                 }
+                    
+                fn EZ_VEC4_TO_U32(v: vec4<u32>) -> u32 {
+                    // Combine the bytes using bitwise operations
+                    let combined: u32 =
+                        (v.x & 0x000000FF) |
+                        ((v.y & 0x000000FF) << 8) |
+                        ((v.z & 0x000000FF) << 16) |
+                        ((v.w & 0x000000FF) << 24);
+
+                    // Return the packed u32 value
+                    return combined;
+                }
 
                 @vertex
                 fn vertexMain(@location(0) position: vec2f, @builtin(instance_index) EZ_INSTANCE: u32) -> VertexOutput {
@@ -701,6 +713,18 @@ class EZWG {
                     // Return as a vector
                     return vec4<u32>(byte0, byte1, byte2, byte3);
                 }
+                fn EZ_VEC4_TO_U32(v: vec4<u32>) -> u32 {
+                    // Combine the bytes using bitwise operations
+                    let combined: u32 =
+                        (v.x & 0x000000FF) |
+                        ((v.y & 0x000000FF) << 8) |
+                        ((v.z & 0x000000FF) << 16) |
+                        ((v.w & 0x000000FF) << 24);
+
+                    // Return the packed u32 value
+                    return combined;
+                }
+
 
                 @vertex
                 fn vertexMain(@location(0) position: vec2f) -> VertexOutput {

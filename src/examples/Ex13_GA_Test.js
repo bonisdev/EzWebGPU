@@ -12,14 +12,50 @@ var Ex13_GA_Test= () => {
         var cellValue = 0u;
         var geneSize = EZ_CELL_VALS * 1u;// 8u;
         var storageInd: u32 = EZ_CHUNK_IND * geneSize;  // <- times the number of each gene
+        var ii: u32 = 0; 
  
+        // Set them to current
+        var outValues: array< vec4<u32>, EZ_CELL_VALS >;
+        ii = 0;
+        loop {
+            if ii >= EZ_CELL_VALS { break; }
+            outValues[ii] = EZ_U32_TO_VEC4( EZ_CELL_VAL(EZX, 0, EZY, 0, ii) );
+            ii = ii + 1u;
+        }
+
+        // TODO maybe need to separate into a read array when adding more operations to a single value
+        // for one pass 
+
+
         var instruction: u32 = 0u;
         
-        var ii: u32 = 0; 
-        
+        ii = 0;
         loop {
             if ii >= EZ_CELL_VALS { break; } // MAX INSTRUCTION SIZE
-            //EZ_STORAGE[ storageInd + ii ];
+
+            instruction = EZ_STORAGE[ storageInd + ii ]; 
+ 
+            var v_inst: vec4<u32> = EZ_U32_TO_VEC4( instruction );
+
+            // If over threshold then activate the instruction in this slot
+            if( outValues[ii].x >= outValues[ii].y ){
+
+                // The first part is the op code:
+                var opCode = v_inst.x % 2u;
+                var toCode = v_inst.w % EZ_CELL_VALS;
+
+                // Add 1
+                if( opCode == 0 ){
+                    outValues[toCode].x = outValues[toCode].x + 1;
+                }
+                    // Add 10
+                else if( opCode == 1 ){
+                    outValues[toCode].x = outValues[toCode].x + 10;
+                }
+                outValues[toCode].x = outValues[toCode].x % 256;
+            }
+
+            
 
             ii = ii + 1u;
         }
@@ -28,9 +64,9 @@ var Ex13_GA_Test= () => {
         ii = 0;
         loop {
             if ii >= EZ_CELL_VALS { break; }
-            cellValue = EZ_CELL_VAL( EZX, 0, EZY, 0, ii );
+            //cellValue = EZ_CELL_VAL( EZX, 0, EZY, 0, ii );
 
-            EZ_STATE_OUT[ EZ_CELL_IND + (ii*EZ_TOTAL_CELLS) ] = cellValue;//EZ_VEC4_TO_U32( cellVec );
+            EZ_STATE_OUT[ EZ_CELL_IND + (ii*EZ_TOTAL_CELLS) ] = EZ_VEC4_TO_U32( outValues[ii] );//outValues[ii];//cellValue;//EZ_VEC4_TO_U32( cellVec );
             ii = ii + 1u;
         }
         

@@ -187,18 +187,37 @@ var Ex9_Stimmings2 = () => {
         initialState[b] = 0;
     }
 
-    EZWG.SHA1.seed('ddfddd')
+    EZWG.SHA1.seed('ddfdstimmers2dd')
     for(let xx = 0;xx < glength;xx++){
         for(let yy = 0;yy < glength;yy++){
+
             let type = EZWG.SHA1.random()
             if( type < 0.1 ){
-                // Instantiate thing        + 0*attlength
-                initialState[xx*glength + yy ] = 1
+                initialState[ (0*attlength) + (xx*glength) + yy ] = 1;
+                initialState[ (1*attlength) + (xx*glength) + yy ] = 4;  // next movement direction
+                initialState[ (2*attlength) + (xx*glength) + yy ] =   // scents
+                    EZWG.createPackedU32( 0, 0, 0, 0);
+                
+                    //EZWG.createPackedU32( 0, 5 + Math.floor(EZWG.SHA1.random()*25), 127, Math.floor(EZWG.SHA1.random()*256) );
             }
             else if( type < 0.5 ){
-                //Instantiate another
-                initialState[xx*glength + yy ] = 2
+                initialState[ (0*attlength) + (xx*glength) + yy ] = 2;
+                initialState[ (1*attlength) + (xx*glength) + yy ] = 4;  // next movement direction (4) is stationary
+                initialState[ (2*attlength) + (xx*glength) + yy ] =     // scents
+                    EZWG.createPackedU32( 0, 0, 0, 0);
             }
+            else{
+                //Nothing
+                initialState[ (0*attlength) + (xx*glength) + yy ] = 0;
+                initialState[ (1*attlength) + (xx*glength) + yy ] = 0;  // next movement direction (4) is stationary
+                initialState[ (2*attlength) + (xx*glength) + yy ] =     // scents
+                    EZWG.createPackedU32( 0, 0, 0, 0);
+            }
+            
+            // Loop through each value
+            // for(let cval = 0;cval < config.CELL_VALS;cval++){ 
+            // }
+            
             // else just keep it zero
         }
     }
@@ -207,6 +226,6 @@ var Ex9_Stimmings2 = () => {
 
     // Intital set the default runner to this
     EZ_EXAMPLE = new EZWG( config);
-    EZ_EXAMPLE.UPDATE_INTERVAL = 20;
+    EZ_EXAMPLE.UPDATE_INTERVAL = 45;
     
 };
