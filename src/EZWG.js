@@ -38,8 +38,8 @@ class EZWG {
             READ_BACK_FUNC: ( currentStep, entireBuffer ) => {},
             CELL_SIZE: 8,
             //  experimental right now 
-                FRAG_PIXEL_MODE: false, // if true, it's a fragment shader
-                PIXEL_PER_COMP: 1,  // how many pixels per comp used in FRAG MODE ONLY 
+                FRAG_PIXEL_MODE: false, // if true, it's a fragment shader, and every pixel gets the fragment code run on it
+                //FRAG_PIXEL_PER_COMP: 1,  // how many pixels per comp used in FRAG MODE ONLY 
             STORAGE: null,//(new Float32Array(0)),
             WORKGROUP_SIZE: 5,      // normally i leave it at 8 but it causes this weird flashing bug sometimes - could be a WebGPU bug
             STARTING_BUFFER: []     // if it's empty it will make a default random or all zeros or something
@@ -69,7 +69,19 @@ class EZWG {
         this.CELL_SIZE = this._validatePositiveInteger(this.config.CELL_SIZE, 'CELL_SIZE');
         
         this.FRAG_PIXEL_MODE =  this.config.FRAG_PIXEL_MODE;
-        this.PIXEL_PER_COMP = this._validatePositiveInteger(this.config.PIXEL_PER_COMP, 'PIXEL_PER_COMP');
+            this.FRAG_PIXEL_PER_COMP = 1;   // defualt is 1 and it's not specifiable from the constructor it gets generated
+        // If it's not an EVEN fit of parts into cell size then make a noise about it cause it's weird
+        if( this.FRAG_PIXEL_MODE ){
+            // 
+            if( this.CELL_SIZE % this.PARTS_ACROSS !== 0 ){
+                throw new Error("when in FRAG_PIXEL_MODE: this.PARTS_ACROSS does not fit evenly in this.CELL_SIZE | " + this.PARTS_ACROSS + " " + this.CELL_SIZE)
+            }
+            else{
+                this.FRAG_PIXEL_PER_COMP = Math.floor( this.CELL_SIZE / this.PARTS_ACROSS );
+            }
+        }
+
+        //this.FRAG_PIXEL_PER_COMP = this._validatePositiveInteger(this.config.FRAG_PIXEL_PER_COMP, 'FRAG_PIXEL_PER_COMP');
 
         this.STORAGE = this.config.STORAGE;         //this._validateArray(this.BUFFER_TYPE, this.config.STORAGE, 'STORAGE');
         this.WORKGROUP_SIZE = this._validatePositiveInteger(this.config.WORKGROUP_SIZE, 'WORKGROUP_SIZE');
@@ -569,6 +581,7 @@ class EZWG {
                     const EZ_CELL_VALS: u32 = ${this.CELL_VALS}u;
                     const CHUNKS_ACROSS: u32 = ${this.CHUNKS_ACROSS}u;
                     const EZ_CHUNK_SIZE: u32 = ${this.CHUNK_SIZE}u;
+                    const EZ_FRAG_PPC: u32 = ${this.FRAG_PIXEL_PER_COMP}u;  //FRAG_PIXEL_PER_COMP
                     let EZ_CELLS_ACROSS_X: u32 = u32( grid.x );
                     let EZ_CELLS_ACROSS_Y: u32 = u32( grid.y );
                     let EZ_TOTAL_CELLS = EZ_CELLS_ACROSS_X * EZ_CELLS_ACROSS_Y;
@@ -702,11 +715,13 @@ class EZWG {
                     var EZ_OUTPUT: FragOutput;
                      
                     let EZ_PARTS_ACROSS_F: f32 = ${this.PARTS_ACROSS}f;
-                    let caWu: u32 = ${this.PARTS_ACROSS}u;
+                    let caWu: u32 = ${this.PARTS_ACROSS}u;      // used in the vertex mode 
+                    let cFaWu: u32= ${this.PARTS_ACROSS*this.FRAG_PIXEL_PER_COMP}u;
 
                     const EZ_CELL_VALS: u32 = ${this.CELL_VALS}u;
                     const CHUNKS_ACROSS: u32 = ${this.CHUNKS_ACROSS}u;
                     const EZ_CHUNK_SIZE: u32 = ${this.CHUNK_SIZE}u;
+                    const EZ_FRAG_PPC: u32 = ${this.FRAG_PIXEL_PER_COMP}u;  //FRAG_PIXEL_PER_COMP
                     var EZ_CELLS_ACROSS_X: u32 = CHUNKS_ACROSS * EZ_CHUNK_SIZE;
                     var EZ_CELLS_ACROSS_Y: u32 = CHUNKS_ACROSS * EZ_CHUNK_SIZE;
                     let EZ_TOTAL_CELLS = EZ_CELLS_ACROSS_X * EZ_CELLS_ACROSS_Y;
@@ -714,12 +729,12 @@ class EZWG {
                     // Global grid counting each component as a cell
                     var EZ_RAW_COL: u32 = u32(floor(fragCoord.x));
                         // TODO this issue right here
-                    var EZ_RAW_ROW: u32 = (EZ_CELLS_ACROSS_Y*caWu) - u32(floor(fragCoord.y)) - 1u; 
+                    var EZ_RAW_ROW: u32 = (EZ_CELLS_ACROSS_Y*cFaWu) - u32(floor(fragCoord.y)) - 1u; 
                     
-                    let EZ_CELL = vec2f( f32(EZ_RAW_COL / caWu), f32(EZ_RAW_ROW / caWu) );
+                    let EZ_CELL = vec2f( f32(EZ_RAW_COL / cFaWu), f32(EZ_RAW_ROW / cFaWu) );
 
-                    var EZX: u32 = EZ_RAW_COL / caWu;
-                    var EZY: u32 = EZ_RAW_ROW / caWu;
+                    var EZX: u32 = EZ_RAW_COL / cFaWu;
+                    var EZY: u32 = EZ_RAW_ROW / cFaWu;
                     var EZ_CELL_IND: u32 = EZX + ( EZY * EZ_CELLS_ACROSS_X);
 
                     var EZ_CHUNK_X: u32 = EZX / EZ_CHUNK_SIZE;
@@ -733,9 +748,9 @@ class EZWG {
                     // --------------------------------------------------------- Extra values for drawing
 
                     // Component metas
-                    var EZ_COMP_X: u32 = EZ_RAW_COL % caWu;
-                    var EZ_COMP_Y: u32 = EZ_RAW_ROW % caWu;
-                    var EZ_COMP_IND: u32 = EZ_COMP_X + EZ_COMP_Y * caWu;
+                    var EZ_COMP_X: u32 = EZ_RAW_COL % cFaWu;
+                    var EZ_COMP_Y: u32 = EZ_RAW_ROW % cFaWu;
+                    var EZ_COMP_IND: u32 = EZ_COMP_X + EZ_COMP_Y * cFaWu;
 					
                     const EZ_cellParts: u32 = ${this.PARTS_ACROSS}u;
  
@@ -1387,6 +1402,8 @@ class EZWG {
         } 
     }
     initTheInitialCellStateAllRand( cellStateArray, seeed, grid_size ){
+        EZWG.SHA1.seed( seeed )  // TODO keep dont assume global EZWG access
+
         let daBigONe = this.CHUNKS_ACROSS * this.CHUNKS_ACROSS * this.CHUNK_SIZE * this.CHUNK_SIZE
         for(let ii = 0;ii < daBigONe;ii++){ 
             for(let c = 0;c < this.CELL_VALS;c++){
@@ -1405,6 +1422,8 @@ class EZWG {
         }
     }
     initTheInitialCellStateAllRandBins( cellStateArray, seeed, grid_size ){
+        EZWG.SHA1.seed( seeed )  // TODO keep dont assume global EZWG access
+
         let daBigONe = this.CHUNKS_ACROSS * this.CHUNKS_ACROSS * this.CHUNK_SIZE * this.CHUNK_SIZE
         for(let ii = 0;ii < daBigONe;ii++){
             for(let c = 0;c < this.CELL_VALS;c++){
@@ -1415,6 +1434,8 @@ class EZWG {
         }
     }
     initTheInitialCellStateAllZeros( cellStateArray, seeed, grid_size ){
+        EZWG.SHA1.seed( seeed )  // TODO keep dont assume global EZWG access
+        
         let daBigONe = this.CHUNKS_ACROSS * this.CHUNKS_ACROSS * this.CHUNK_SIZE * this.CHUNK_SIZE
         for(let ii = 0;ii < daBigONe;ii++){
             for(let c = 0;c < this.CELL_VALS;c++){

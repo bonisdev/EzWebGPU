@@ -135,8 +135,7 @@ var Ex9_Stimmings2 = () => {
         CELL_VALS: 3,
         
             FRAG_PIXEL_MODE: true, // switches rendering logic to the fragment shader instead of
-                                    // many draw calls to two traingle shape 
-            PIXEL_PER_COMP: 1,      // this is never used...?
+                                    // many draw calls to two traingle shape  
     
         READ_BACK_FREQ: 100,     // Every 15 time steps read back the gpu buffer
         READ_BACK_FUNC: ( currentStep, entireBuffer ) => {
@@ -147,8 +146,8 @@ var Ex9_Stimmings2 = () => {
             lastReadBackTime = diffinTime
         },
         /*
-        Slot( 0 )  	// 0x0000FFFF		0x00FF0000 		//0xFF000000
-					EntType				TEAM			CPU TAG
+        Slot( 0 )  	// 0x0000FFFF
+					EntType	 
 	    Slot( 1 )	// 0x000000FF						// 0x0000FF00							0x00FF0000   	0xFF000000
 					Movement next direction X(-127)		Movement next direction Y(-127)	  		// Good to go	?????
 	    Slot( 2 )	// 0x000000FF						// 0x0000FF00							0x00FF0000   	0xFF000000

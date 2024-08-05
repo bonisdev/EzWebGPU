@@ -80,6 +80,9 @@ var Ex13_GA_Test= () => {
         BUFFER_TYPE: 'u32',
         STORAGE_TYPE: 'f32',      // float to store the weights of the NN 
 
+            FRAG_PIXEL_MODE: true,  // switches rendering logic to the fragment shader instead of
+                                    // many draw calls to two traingle shape  
+
         CONTAINER_ID:   'demoCanvasContainer',    // DOM id to insdert canvas to
         RAND_SEED:      'randomseed12345678910', 
         STARTING_CONFIG: EZWG.ALL_RANDS,//ALL_BINS,      // couldve been EZWG.ALL_ZERO
