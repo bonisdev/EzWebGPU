@@ -1216,7 +1216,7 @@ class EZWG {
             const encoder_cpu_helper = this.device.createCommandEncoder();
  
             //console.log(this.READ_BACK_FREQ, '---', this.step)
-            if(this.READ_BACK_FREQ> -1 && (this.step % this.READ_BACK_FREQ === 0)){ 
+            if( this.READ_BACK_FREQ > -1 && (this.step%this.READ_BACK_FREQ===0) ){ 
                 doReadBack = true; 
 
                 // Copy output buffer to staging buffer
@@ -1435,7 +1435,7 @@ class EZWG {
     }
     initTheInitialCellStateAllZeros( cellStateArray, seeed, grid_size ){
         EZWG.SHA1.seed( seeed )  // TODO keep dont assume global EZWG access
-        
+
         let daBigONe = this.CHUNKS_ACROSS * this.CHUNKS_ACROSS * this.CHUNK_SIZE * this.CHUNK_SIZE
         for(let ii = 0;ii < daBigONe;ii++){
             for(let c = 0;c < this.CELL_VALS;c++){
@@ -1683,6 +1683,8 @@ class EZWG {
         // Scale the float to the range of a 32-bit unsigned integer
         return Math.floor(zeroToOne * 0xFFFFFFFF);
     }
+
+
  
     static processImagePixels(img, width, height) {
         // Create a canvas and draw the image
@@ -1724,6 +1726,17 @@ class EZWG {
         }
         return packedPixels;
     }
+
+    // Least signifcant bit is the first one
+    // 0 - 255,  
+    static createPackedU32( s4, s3, s2, s1 ){ 
+        return (s4 << 24) | (s3 << 16) | (s2 << 8) | s1; 
+    }
+
+    // 0 - 65535,
+    static createPackedU32_16( s2, s1 ){
+        return  (s2 << 16) | s1;
+    }
     
     static unpackU32(packedValue) {
         const a = (packedValue >> 24) & 0xFF;
@@ -1731,6 +1744,12 @@ class EZWG {
         const g = (packedValue >> 8) & 0xFF;
         const r = packedValue & 0xFF;
         return { r, g, b, a };
+    }
+    
+    static unpackU32_16(packedValue) { 
+        const b = (packedValue >> 16) & 0xFFFF;
+        const a = packedValue & 0xFFFF;
+        return { a, b };
     }
     
 
