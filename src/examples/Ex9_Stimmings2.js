@@ -7,14 +7,75 @@ var Ex9_Stimmings2 = () => {
 
     let computeWGSL = 
     `
+
+
+        // 0, 1, 2, 3
+        var entityType: u32 = EZ_CELL_VAL( EZX, 0, EZY, 0, 0 );
+        // 0, 1, 2, 3, 4, 5, 6, 7, 8   <-  (4 Stationary)
+        var nextMove: u32 = EZ_CELL_VAL( EZX, 0, EZY, 0, 1 );
+        // Stores 4 different scent values
+        var scntPckge1: u32 = EZ_CELL_VAL( EZX, 0, EZY, 0, 2 );
+        var outScents: array< vec4<u32>, 1 >;
+        outScents[0] = EZ_U32_TO_VEC4( scntPckge1 );
+
+        // Calculate the PERSONAL priority movement  - based on location
+        //      used if there's another entity that wants to go 
+        //      to SAME location as you do
+        var pPrior: u32 = 0;    
+
+        // EVERYTHING ABOUT THE CELL STATE SHOULD BE LOADED ------------------
+
+        // No matter what accumulate the neighbours' intentions
+        var i: u32 = 0u;
+        var ii: u32 = 0u;
+        var dx: i32 = -1i;
+        var dy: i32 = -1i;
+
+        var realProblems: u32 = 0u;         // Anyone contesting your movement?
+
+        
+
+        loop {                              // Goes 0-7 (inclusive)
+            if i >= 8 { break; }
+            ii = i + (i / 4u);              // Every ii except 4
+            dx = -1 + i32(ii%3u);           // X Value
+            dy = -1 + i32(ii/3u);           // Y Value
+
+
+            // TODO - somewhere here check if anyone has MOVE
+            //      intensions into you - they can only do it 
+
+
+            //EZ_STATE_OUT[ EZ_CELL_IND + (ii*EZ_TOTAL_CELLS) ] = EZ_VEC4_TO_U32( outValues[ii] );//outValues[ii];//cellValue;//EZ_VEC4_TO_U32( cellVec );
+            i = i + 1u;
+        }
+
+        // TODO -verify
+        // IF you are moving - is the spot you are moving to uncontested?
+        // If it is contested - do YOU have priority?
+
+        // If you are NOT moving - is your position safe
+        // or is someone with priortiy going to OVERWRITE U
+
+        
+        // If No one has intensions to move (no realProblems)  
+        //      then based on your current movement priority - do you have pers
+
+        // To move somehwere an entity must have INTENTION
+        // as well as the current priority to move to that spot.
+
+
+
         // This value is used as an index to get the right attribute
         // in the cell (we're only going to define a size of 1 for 
         //  this CGOL example)
         var cellAttribute: u32 = 0u;
 
+
         
         var neighbourCount: u32 = 0u;
 
+        // Grab the entity type 
         // Explanation of the EX_CELL_VAL function call:
         //      get the surroduning 8 neighbours (from the chunk that
         //      EZX and EZY is in), get the offset by 1 or -1, and at
@@ -128,7 +189,7 @@ var Ex9_Stimmings2 = () => {
 
         CELL_SIZE: 8,               // How many pixels across one cell is (fragment renderer
                                     // assumes this number is the same as PARTS_ACROSS)
-        CHUNK_SIZE: 128,
+        CHUNK_SIZE: 32,
         CHUNKS_ACROSS: 1,
         PARTS_ACROSS: 8,            // Note* frag shader considers each part one by one pixel
 
@@ -192,22 +253,34 @@ var Ex9_Stimmings2 = () => {
         for(let yy = 0;yy < glength;yy++){
 
             let type = EZWG.SHA1.random()
-            if( type < 0.1 ){
-                initialState[ (0*attlength) + (xx*glength) + yy ] = 1;
+            // Make the first type of guy
+            if( type < 0.03 ){
+                initialState[ (0*attlength) + (xx*glength) + yy ] = 1;  // TYPE of entity
                 initialState[ (1*attlength) + (xx*glength) + yy ] = 4;  // next movement direction
                 initialState[ (2*attlength) + (xx*glength) + yy ] =   // scents
                     EZWG.createPackedU32( 0, 0, 0, 0);
                 
                     //EZWG.createPackedU32( 0, 5 + Math.floor(EZWG.SHA1.random()*25), 127, Math.floor(EZWG.SHA1.random()*256) );
             }
-            else if( type < 0.5 ){
+            // Second type of guy
+            else if( type < 0.06 ){
                 initialState[ (0*attlength) + (xx*glength) + yy ] = 2;
                 initialState[ (1*attlength) + (xx*glength) + yy ] = 4;  // next movement direction (4) is stationary
                 initialState[ (2*attlength) + (xx*glength) + yy ] =     // scents
                     EZWG.createPackedU32( 0, 0, 0, 0);
             }
+            
+            // RESOURCE
+            else if( type < 0.08 ){
+                initialState[ (0*attlength) + (xx*glength) + yy ] = 3;
+                initialState[ (1*attlength) + (xx*glength) + yy ] = 4;  // next movement direction (4) is stationary
+                initialState[ (2*attlength) + (xx*glength) + yy ] =     // scents
+                    EZWG.createPackedU32( 0, 0, 0, 0);
+            }
+
+
+            //Nothing
             else{
-                //Nothing
                 initialState[ (0*attlength) + (xx*glength) + yy ] = 0;
                 initialState[ (1*attlength) + (xx*glength) + yy ] = 0;  // next movement direction (4) is stationary
                 initialState[ (2*attlength) + (xx*glength) + yy ] =     // scents
