@@ -5,12 +5,16 @@ var Ex13_GA_Test= () => {
        <p><span style="color: red;">*** </span> confine the agent and agent's environment logic </p>
     `;
 
+
+
+    var Max_Gene_Moves = 8;
+
     let computeWGSL = 
     `
-
         let cellAttribute: u32 = 0u;
         var cellValue = 0u;
-        var geneSize = EZ_CELL_VALS * 1u;// 8u;
+        var maxGeneMoves: u32 = ${Max_Gene_Moves}u;
+        var geneSize = EZ_CELL_VALS * maxGeneMoves;
         var storageInd: u32 = EZ_CHUNK_IND * geneSize;  // <- times the number of each gene
         var ii: u32 = 0; 
  
@@ -41,21 +45,29 @@ var Ex13_GA_Test= () => {
             if( outValues[ii].x >= outValues[ii].y ){
 
                 // The first part is the op code:
-                var opCode = v_inst.x % 2u;
+                var opCode = v_inst.x % 4u;
                 var toCode = v_inst.w % EZ_CELL_VALS;
 
                 // Add 1
                 if( opCode == 0 ){
                     outValues[toCode].x = outValues[toCode].x + 1;
                 }
-                    // Add 10
+                // Add 10
                 else if( opCode == 1 ){
                     outValues[toCode].x = outValues[toCode].x + 10;
                 }
+                // Shift right 1
+                else if( opCode == 2 ){
+                    outValues[toCode].x = outValues[toCode].x >> 1;
+                }
+                // Shift left 1
+                else if( opCode == 3 ){
+                    outValues[toCode].x = outValues[toCode].x << 1;
+                } 
+
+                // CONSTRAIN new output values to this number
                 outValues[toCode].x = outValues[toCode].x % 256;
             }
-
-            
 
             ii = ii + 1u;
         }
@@ -98,7 +110,7 @@ var Ex13_GA_Test= () => {
 
     // Generate the population
     let totalGenesToTry = 4 * 4
-    let geneSize = 5 * 8;//  5 unique cell values and a possible max of 8 moves 
+    let geneSize = 5 * Max_Gene_Moves;//  5 unique cell values and a possible max of 8 moves 
     let allGenes = new Uint32Array( totalGenesToTry * geneSize )
     EZWG.SHA1.seed('test12345')
     for(let v = 0;v < allGenes.length;v++){
