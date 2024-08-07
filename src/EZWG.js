@@ -745,15 +745,15 @@ class EZWG {
                     const EZ_CELL_VALS: u32 = ${this.CELL_VALS}u;
                     const CHUNKS_ACROSS: u32 = ${this.CHUNKS_ACROSS}u;
                     const EZ_CHUNK_SIZE: u32 = ${this.CHUNK_SIZE}u;
-                    const EZ_FRAG_PPC: u32 = ${this.FRAG_PIXEL_PER_COMP}u;  //FRAG_PIXEL_PER_COMP
+                    var EZ_FRAG_PPC: u32 = ${this.FRAG_PIXEL_PER_COMP}u;  //FRAG_PIXEL_PER_COMP
                     var EZ_CELLS_ACROSS_X: u32 = CHUNKS_ACROSS * EZ_CHUNK_SIZE;
                     var EZ_CELLS_ACROSS_Y: u32 = CHUNKS_ACROSS * EZ_CHUNK_SIZE;
                     let EZ_TOTAL_CELLS = EZ_CELLS_ACROSS_X * EZ_CELLS_ACROSS_Y;
 
                     // Global grid counting each component as a cell
-                    var EZ_RAW_COL: u32 = u32(floor(fragCoord.x));
+                    var EZ_RAW_COL: u32 = u32(floor(fragCoord.x)) / 1;
                         // TODO this issue right here
-                    var EZ_RAW_ROW: u32 = (EZ_CELLS_ACROSS_Y*cFaWu) - u32(floor(fragCoord.y)) - 1u; 
+                    var EZ_RAW_ROW: u32 = (EZ_CELLS_ACROSS_Y*cFaWu) - (u32(floor(fragCoord.y))/1) - 1u; 
                     
                     let EZ_CELL = vec2f( f32(EZ_RAW_COL / cFaWu), f32(EZ_RAW_ROW / cFaWu) );
 
@@ -772,9 +772,9 @@ class EZWG {
                     // --------------------------------------------------------- Extra values for drawing
 
                     // Component metas
-                    var EZ_COMP_X: u32 = EZ_RAW_COL % cFaWu;
-                    var EZ_COMP_Y: u32 = EZ_RAW_ROW % cFaWu;
-                    var EZ_COMP_IND: u32 = EZ_COMP_X + EZ_COMP_Y * cFaWu;
+                    var EZ_COMP_X: u32 = (EZ_RAW_COL % cFaWu) / EZ_FRAG_PPC;
+                    var EZ_COMP_Y: u32 = (EZ_RAW_ROW % cFaWu) / EZ_FRAG_PPC;
+                    var EZ_COMP_IND: u32 = EZ_COMP_X + EZ_COMP_Y * (EZ_TOTAL_CELLS*caWu);
 					
                     const EZ_cellParts: u32 = ${this.PARTS_ACROSS}u;
  

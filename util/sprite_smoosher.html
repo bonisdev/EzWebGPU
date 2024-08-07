@@ -54,6 +54,7 @@
 
     <div id="dropZone">Drag and drop your images here</div>
  
+    <div id="lengerth"></div>
     <textarea width="11" id="output"></textarea>
 
     <script>
@@ -90,7 +91,45 @@
             }
             return packedPixels;
         }
+        // Function to read a file and return a Promise with image data
+        function readFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => resolve(img);
+                    img.onerror = reject;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
 
+        // Function to process files sequentially
+        async function processFilesSequentially(files) {
+            const processedResults = [];
+            const imageList = document.createElement('div');
+            imageList.className = 'image-list';
+            //output.innerHTML = ''; // Clear previous output
+            output.appendChild(imageList);
+
+            for (const file of files) {
+                try {
+                    const img = await readFile(file);
+                    imageList.appendChild(img);
+                    const result = processImagePixels(img, 8, 8);
+                    processedResults.push(result);
+                    console.log(`Processed pixels for ${file.name}:`, result);
+                } catch (error) {
+                    console.error(`Error processing file ${file.name}:`, error);
+                }
+            }
+
+            // Concatenate the results
+            console.log('Final concatenated results:', processedResults.flat());
+            output.value += `[ ${processedResults.flat()} ]`;
+        }
         // Setup drag-and-drop
         const dropZone = document.getElementById('dropZone');
         const output = document.getElementById('output');
@@ -111,47 +150,12 @@
 
             // Filter images and sort them by filenames
             const imageFiles = files.filter(file => file.type.startsWith('image/'));
-            imageFiles.sort((a, b) => parseInt(a.name) - parseInt(b.name));
+            console.log(files)
+            imageFiles.sort((a, b) => Number((a.name+'').split('.')[0]) - Number((b.name+'').split('.')[0]));
 
-            // Process each image
-            const processedResults = [];
-            const imageList = document.createElement('div');
-            imageList.className = 'image-list';
-            output.innerHTML = ''; // Clear previous output
-            output.appendChild(imageList);
-
-            imageFiles.forEach((file, index) => {
-                const img = document.createElement('img');
-                img.file = file;
-
-                // Show the images
-                const reader = new FileReader();
-                reader.onload = (function (aImg) {
-                    return function (e) {
-
-                        let PIXEL_SIZER = 8;
-
-                        aImg.src = e.target.result;
-                        imageList.appendChild(aImg);
-
-                        // Once the image is loaded, process its pixels
-                        aImg.onload = function () {
-                            const result = processImagePixels(aImg, PIXEL_SIZER, PIXEL_SIZER);
-                            processedResults.push(result);
-                            console.log(`Processed pixels for ${aImg.file.name}:`, result);
-
-                            // Concatenate the results
-                            if (index === imageFiles.length - 1) {
-                                console.log('Final concatenated results:', processedResults.flat());
-                                //output.value = `<pre>${JSON.stringify(processedResults.flat(), null, 2)}</pre>`;
-                                output.value = '[ ' + processedResults.flat() + ' ]';
-                            }
-                        };
-                    };
-                })(img);
-                reader.readAsDataURL(file);
-            });
-        });
+            // Process files sequentially
+            processFilesSequentially(imageFiles);
+        }); //output.value = '[ ' + processedResults.flat() + ' ]';
     </script>
 
 </body>
