@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drag and Drop Image Processor</title>
+    <style>
+
+        body{
+            background-color: #2b3724;
+        }
+        #dropZone {
+            width: 300px;
+            height: 200px;
+            border: 2px dashed #cccccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            margin: 50px auto;
+            background-color: #aa6e6e;
+            color: #555555;
+            font-size: 16px;
+            transition: background-color 0.3s ease-in-out;
+        }
+
+        #dropZone.hover {
+            background-color: #eb6969;
+        }
+
+        #output {
+            margin: 20px auto;
+            width: 80%;
+            text-align: left;
+        }
+
+        .image-list {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .image-list img {
+            margin: 10px;
+            border: 1px solid #ddd;
+            padding: 5px;
+            width: 100px;
+            height: 100px;
+        }
+        
+    </style>
+</head>
+<body>
+
+    <div id="dropZone">Drag and drop your images here</div>
+ 
+    <textarea width="11" id="output"></textarea>
+
+    <script>
+        // Process image pixels function
+        function processImagePixels(img, width, height) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = width;
+            canvas.height = height;
+
+            ctx.imageSmoothingEnabled = false;
+            ctx.mozImageSmoothingEnabled = false;
+            ctx.webkitImageSmoothingEnabled = false;
+            ctx.msImageSmoothingEnabled = false;
+
+            img.style.imageRendering = 'pixelated';
+            img.style.imageRendering = 'crisp-edges';
+            img.width = width;
+            img.height = height;
+
+            ctx.drawImage(img, 0, 0, width, height);
+            const imageData = ctx.getImageData(0, 0, width, height).data;
+            const packedPixels = [];
+            for (let y = height - 1; y >= 0; y--) {
+                for (let x = 0; x < width; x++) {
+                    const index = (y * width + x) * 4;
+                    const r = imageData[index];
+                    const g = imageData[index + 1];
+                    const b = imageData[index + 2];
+                    const a = imageData[index + 3];
+                    const packedValue = (a << 24) | (b << 16) | (g << 8) | r;
+                    packedPixels.push(packedValue);
+                }
+            }
+            return packedPixels;
+        }
+
+        // Setup drag-and-drop
+        const dropZone = document.getElementById('dropZone');
+        const output = document.getElementById('output');
+
+        dropZone.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            dropZone.classList.add('hover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('hover');
+        });
+
+        dropZone.addEventListener('drop', (event) => {
+            event.preventDefault();
+            dropZone.classList.remove('hover');
+            const files = Array.from(event.dataTransfer.files);
+
+            // Filter images and sort them by filenames
+            const imageFiles = files.filter(file => file.type.startsWith('image/'));
+            imageFiles.sort((a, b) => parseInt(a.name) - parseInt(b.name));
+
+            // Process each image
+            const processedResults = [];
+            const imageList = document.createElement('div');
+            imageList.className = 'image-list';
+            output.innerHTML = ''; // Clear previous output
+            output.appendChild(imageList);
+
+            imageFiles.forEach((file, index) => {
+                const img = document.createElement('img');
+                img.file = file;
+
+                // Show the images
+                const reader = new FileReader();
+                reader.onload = (function (aImg) {
+                    return function (e) {
+
+                        let PIXEL_SIZER = 8;
+
+                        aImg.src = e.target.result;
+                        imageList.appendChild(aImg);
+
+                        // Once the image is loaded, process its pixels
+                        aImg.onload = function () {
+                            const result = processImagePixels(aImg, PIXEL_SIZER, PIXEL_SIZER);
+                            processedResults.push(result);
+                            console.log(`Processed pixels for ${aImg.file.name}:`, result);
+
+                            // Concatenate the results
+                            if (index === imageFiles.length - 1) {
+                                console.log('Final concatenated results:', processedResults.flat());
+                                //output.value = `<pre>${JSON.stringify(processedResults.flat(), null, 2)}</pre>`;
+                                output.value = '[ ' + processedResults.flat() + ' ]';
+                            }
+                        };
+                    };
+                })(img);
+                reader.readAsDataURL(file);
+            });
+        });
+    </script>
+
+</body>
+</html>
