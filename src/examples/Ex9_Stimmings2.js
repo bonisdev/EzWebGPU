@@ -20,9 +20,15 @@ var Ex9_Stimmings2 = () => {
 
         // Stores 4 different scent values
         var SLOT2: u32 = EZ_CELL_VAL( EZX, 0, EZY, 0, 2 );
+        var SCSLTS: u32 = 1u;   // ALL SCENT SLOTS
 
-        var outScents: array< vec4<u32>, 1 >;
-        outScents[0] = EZ_U32_TO_VEC4( SLOT2 );
+        // First these values are filled with lowest of each scent 
+        var inScents: array< u32, 8u >; //  *SCSLTS
+        var outScents: array< u32, 4u >;// *SCSLTS
+        outScents[0] = 0u;
+        outScents[1] = 0u;
+        outScents[2] = 0u;
+        outScents[3] = 0u;
 
         // Calculate the PERSONAL priority movement  - based on location
         //      used if there's another entity that wants to go 
@@ -33,28 +39,67 @@ var Ex9_Stimmings2 = () => {
 
         // No matter what accumulate the neighbours' intentions
         var i: u32 = 0u;
-        var ii: u32 = 0u;
-        var scntind: u32 = 0u;
+        var di: u32 = 0u;                   // Direction ind
+        var bitind: u32 = 0u;              // Scent ind (the 0-3 inside a u32)
         var dx: i32 = -1i;
         var dy: i32 = -1i;
 
-        var realProblems: u32 = 0u;         // Anyone contesting your movement?
- 
+        // FIRST MAKE ALL THE SCENT VALUE READS U NEED:
         loop {                              // Goes 0-7 (inclusive)
-            if i >= 8*4 { break; }         
-            ii = (i%8) + ((i%8) / 4u);      // Which way look around
-            scntind = i / 8;                // Which scent to be compiling
-            dx = -1 + i32(ii%3u);           // X Value
-            dy = -1 + i32(ii/3u);           // Y Value
-
-
-            // TODO - somewhere here check if anyone has MOVE
-            //      intensions into you - they can only do it 
-            // neighbourCount += EZ_CELL_VAL( EZX, 1, EZY,  1, cellAttribute );
-
-
-            //EZ_STATE_OUT[ EZ_CELL_IND + (ii*EZ_TOTAL_CELLS) ] = EZ_VEC4_TO_U32( outValues[ii] );      //outValues[ii];//cellValue;//EZ_VEC4_TO_U32( cellVec );
+            if i >= 8*SCSLTS { break; }         
+            di = (i%8) + ((i%8)/4u);      // Which way look around (0 - 7 SKIPS 4!(SELF))
+            bitind = i / 8;                // Which scent to be compiling (0 - 3)
+            dx = -1 + i32(di%3u);           // X Value
+            dy = -1 + i32(di/3u);           // Y Value
+            inScents[ i ] = EZ_CELL_VAL( EZX, dx, EZY, dy, 2u + bitind );
             i = i + 1u;
+        }
+
+        var realProblems: u32 = 0u;         // Anyone contesting your movement?
+
+        var crvl: u32    = 0u;              // CUrrent scent val looking at 
+        var tmpcrvl: u32 = 0u;              // Current holding val for the contender for lwoestscent
+ 
+        //      EACH scent go through the 8 directions and then find the lowest
+        i = 0u;
+        loop {                              // Goes 0-7 (inclusive)
+            if i >= 8*4 { break; }   // TODO add the SCSLTS      
+            di = (i%8) + ((i%8) / 4u);      // Which way look around (0 - 7 SKIPS 4!(SELF))
+            bitind = i / 8;                // Which scent to be compiling (0 - 3)
+            //dx = -1 + i32(di%3u);           // X Value
+            //dy = -1 + i32(di/3u);           // Y Value
+
+                // TODO add the SCSLTS
+            crvl = inScents[ i%8 ];  // Get the entire u32 represeting the scents from this direction//EZ_CELL_VAL( EZX, dx, EZY, dy, 2u );
+            crvl = (crvl >> (8u*bitind)) & 0x000000FF;     // Starts at FF and .. FF000000
+            tmpcrvl = outScents[ bitind ];
+
+            //   if bigger set new value
+            if( crvl > tmpcrvl ){
+                outScents[ bitind ] = crvl;
+            }
+            i = i + 1u;
+        }
+
+            // Highest scent for each scent is now in OUT SCENTS 
+            // So remove ONE from the highest value 
+        i = 0u;
+        loop {                    
+            if i >= 4u*SCSLTS { break; }
+            outScents[ i ] = max( outScents[ i ], 22u );
+            outScents[ i ] = outScents[ i ] - 22u;
+            i = i + 1u;
+        }
+
+
+
+        // SCENT EMITTER res:
+        
+        if( entityType == 1u ){ 
+            outScents[ 0u ] = 255u; 
+        }
+        else if( entityType == 3u ){ 
+            outScents[ 1u ] = 255u; 
         }
 
         
@@ -76,13 +121,6 @@ var Ex9_Stimmings2 = () => {
         // To move somehwere an entity must have INTENTION
         // as well as the current priority to move to that spot.
 
-
-
-        // This value is used as an index to get the right attribute
-        // in the cell (we're only going to define a size of 1 for 
-        //  this CGOL example)
-        var cellAttribute: u32 = 0u;
-
  
         
 
@@ -90,16 +128,18 @@ var Ex9_Stimmings2 = () => {
         var myState: u32 = 0u;
         myState = (entityType & 0x0000FFFF) | ((counter & 0x0000FFFF) << 16);
 
-        // 1:  SET 
+        // 1:  SET rando thing funner
         var lastRand: u32 = EZ_STATE_IN[ EZ_CELL_IND + 1u * EZ_TOTAL_CELLS ];
         EZ_STATE_OUT[ EZ_CELL_IND + 1u * EZ_TOTAL_CELLS ] = u32( 255*EZ_RAND((EZX+counter*17+EZY*5+lastRand)%255) );
  
-        // Hadnle the mouse input here
-        // Here's the addition of mouse handling 
-        //      'incrementer' variable for each f32 or u32 value in memory  
-        cellAttribute = 0u;
+        // 2: SCENTS
+        EZ_STATE_OUT[ EZ_CELL_IND + 2u * EZ_TOTAL_CELLS ] = 
+            (outScents[0] & 0x000000FF) |
+            ((outScents[1] & 0x000000FF) << 8) |
+            ((outScents[2] & 0x000000FF) << 16) |
+            ((outScents[3] & 0x000000FF) << 24);
 
-        
+ 
 
         var bufferInd: u32 = EZ_CELL_IND + 0u * EZ_TOTAL_CELLS;
         // Get the min max of the input coordinattres
@@ -165,6 +205,21 @@ var Ex9_Stimmings2 = () => {
         }
 
 
+
+        //      SCENTS
+        var scntSlot0: u32 = EZ_STATE_IN[ EZ_CELL_IND + 2u*EZ_TOTAL_CELLS];
+        var homScent: f32 = f32( scntSlot0 & 0x000000FF );
+        var resScent: f32 = f32( (scntSlot0 >> 8) & 0x000000FF );
+
+        homScent = homScent / 255f;
+        homScent = homScent * 0.83f;
+        homScent = pow( homScent, 4 );
+
+        resScent = resScent / 255f;
+        resScent = resScent * 0.83f;
+        resScent = pow( resScent, 4 );
+
+
         var thisPixBg: u32 = 0;
         if (entityType > 0u) {
 
@@ -185,10 +240,16 @@ var Ex9_Stimmings2 = () => {
         }
         
         if( thisPixBg == 1u || entityType < 1u ){
+
+ 
             var randVal: f32 = f32(EZ_STATE_IN[ EZ_CELL_IND + 1u*EZ_TOTAL_CELLS]);
             randVal = randVal / 255.0;
-            EZ_OUTPUT.red = randVal;
-            EZ_OUTPUT.grn = randVal;
+            randVal = 0.15;
+
+            EZ_OUTPUT.red = homScent;
+
+            EZ_OUTPUT.grn = resScent; 
+
             EZ_OUTPUT.blu = randVal;
         }
     `;
