@@ -20,15 +20,23 @@ var Ex9_Stimmings2 = () => {
 
         // Stores 4 different scent values
         var SLOT2: u32 = EZ_CELL_VAL( EZX, 0, EZY, 0, 2 );
-        var SCSLTS: u32 = 1u;   // ALL SCENT SLOTS
+        var SCSLTS: u32 = 2u;   // ALL SCENT SLOTS
 
         // First these values are filled with lowest of each scent 
-        var inScents: array< u32, 8u >; //  *SCSLTS
-        var outScents: array< u32, 4u >;// *SCSLTS
-        outScents[0] = 0u;
-        outScents[1] = 0u;
-        outScents[2] = 0u;
-        outScents[3] = 0u;
+        const TTL_INSLTS: u32 = 16u;// * SCSLTS;       // TOTAL IN SCENT VALS (u32s) 8 nghbs times each u32 val needed for scent
+        const TTL_OUTS: u32  = 8u;  // * SCSLTS;         // TOTAL scent outs (u8's) to write back
+
+        var inScents: array< u32, TTL_INSLTS >; //  *SCSLTS
+        var outScents: array< u32, TTL_OUTS >;// *SCSLTS
+        outScents[0] = 0u;  //home
+        outScents[1] = 0u;  //res
+        outScents[2] = 0u;  //work
+        outScents[3] = 0u;  //enemy
+
+        outScents[4] = 0u;  //home
+        outScents[5] = 0u;  //res
+        outScents[6] = 0u;  //work
+        outScents[7] = 0u;  //enemy
 
         // Calculate the PERSONAL priority movement  - based on location
         //      used if there's another entity that wants to go 
@@ -38,7 +46,7 @@ var Ex9_Stimmings2 = () => {
         // EVERYTHING ABOUT THE CELL STATE SHOULD BE LOADED ------------------
 
         // No matter what accumulate the neighbours' intentions
-        var i: u32 = 0u;
+        var i: u32 = 0u; 
         var di: u32 = 0u;                   // Direction ind
         var bitind: u32 = 0u;              // Scent ind (the 0-3 inside a u32)
         var dx: i32 = -1i;
@@ -46,14 +54,20 @@ var Ex9_Stimmings2 = () => {
 
         // FIRST MAKE ALL THE SCENT VALUE READS U NEED:
         loop {                              // Goes 0-7 (inclusive)
-            if i >= 8*SCSLTS { break; }         
-            di = (i%8) + ((i%8)/4u);      // Which way look around (0 - 7 SKIPS 4!(SELF))
-            bitind = i / 8;                // Which scent to be compiling (0 - 3)
+            if i >= TTL_INSLTS { break; }   // from 0 to TTL_INSLTS-1
+            di = (i%8) + ((i%8)/4u);        // Which way look around (0 - 7 SKIPS 4!(SELF))
+            bitind = i / 8;                 // Which scent to be compiling (0 - 3)
             dx = -1 + i32(di%3u);           // X Value
             dy = -1 + i32(di/3u);           // Y Value
             inScents[ i ] = EZ_CELL_VAL( EZX, dx, EZY, dy, 2u + bitind );
             i = i + 1u;
         }
+
+
+        // INSCENTS
+        //[ topleft u32,  topmiddle u32, toprightu32 , ....  , bottomright u32+1 ]
+
+
 
         var realProblems: u32 = 0u;         // Anyone contesting your movement?
 
@@ -63,29 +77,26 @@ var Ex9_Stimmings2 = () => {
         //      EACH scent go through the 8 directions and then find the lowest
         i = 0u;
         loop {                              // Goes 0-7 (inclusive)
-            if i >= 8*4 { break; }   // TODO add the SCSLTS      
-            di = (i%8) + ((i%8) / 4u);      // Which way look around (0 - 7 SKIPS 4!(SELF))
-            bitind = i / 8;                // Which scent to be compiling (0 - 3)
-            //dx = -1 + i32(di%3u);           // X Value
-            //dy = -1 + i32(di/3u);           // Y Value
+        //  nghbs,   u8s,   scentSLOTS
+            if i >= 4*8*SCSLTS { break; }   // TODO add the SCSLTS      
+            di = i / 4;                     // Each di is another wheel around the spolks
+            bitind = (i%4) + (i/(4*8))*4;                 // Which outScent to be writing to
 
                 // TODO add the SCSLTS
-            crvl = inScents[ i%8 ];  // Get the entire u32 represeting the scents from this direction//EZ_CELL_VAL( EZX, dx, EZY, dy, 2u );
-            crvl = (crvl >> (8u*bitind)) & 0x000000FF;     // Starts at FF and .. FF000000
+            crvl = inScents[ di ];        // Get the entire u32 represeting the scents from this direction//EZ_CELL_VAL( EZX, dx, EZY, dy, 2u );
+            crvl = ( crvl >> (8u*(i%4)) ) & 0x000000FF;     // Starts at FF and .. FF000000  <-then loops around for next scent slot 
             tmpcrvl = outScents[ bitind ];
 
-            //   if bigger set new value
             if( crvl > tmpcrvl ){
                 outScents[ bitind ] = crvl;
             }
             i = i + 1u;
         }
 
-            // Highest scent for each scent is now in OUT SCENTS 
-            // So remove ONE from the highest value 
+
         i = 0u;
-        loop {                    
-            if i >= 4u*SCSLTS { break; }
+        loop {    // FIND HIGHEST - take one away for each scent                
+            if i >= TTL_OUTS { break; }
             outScents[ i ] = max( outScents[ i ], 22u );
             outScents[ i ] = outScents[ i ] - 22u;
             i = i + 1u;
@@ -95,10 +106,10 @@ var Ex9_Stimmings2 = () => {
 
         // SCENT EMITTER res:
         
-        if( entityType == 1u ){ 
+        if( entityType == 1u ){     // OLD MAN
             outScents[ 0u ] = 255u; 
         }
-        else if( entityType == 3u ){ 
+        else if( entityType == 3u ){// RES
             outScents[ 1u ] = 255u; 
         }
 
@@ -138,6 +149,12 @@ var Ex9_Stimmings2 = () => {
             ((outScents[1] & 0x000000FF) << 8) |
             ((outScents[2] & 0x000000FF) << 16) |
             ((outScents[3] & 0x000000FF) << 24);
+        
+        EZ_STATE_OUT[ EZ_CELL_IND + 3u * EZ_TOTAL_CELLS ] = 
+            (outScents[4] & 0x000000FF) |
+            ((outScents[5] & 0x000000FF) << 8) |
+            ((outScents[6] & 0x000000FF) << 16) |
+            ((outScents[7] & 0x000000FF) << 24);
 
  
 
@@ -208,16 +225,18 @@ var Ex9_Stimmings2 = () => {
 
         //      SCENTS
         var scntSlot0: u32 = EZ_STATE_IN[ EZ_CELL_IND + 2u*EZ_TOTAL_CELLS];
+        var scntSlot1: u32 = EZ_STATE_IN[ EZ_CELL_IND + 3u*EZ_TOTAL_CELLS];
+
         var homScent: f32 = f32( scntSlot0 & 0x000000FF );
         var resScent: f32 = f32( (scntSlot0 >> 8) & 0x000000FF );
 
         homScent = homScent / 255f;
-        homScent = homScent * 0.83f;
-        homScent = pow( homScent, 4 );
+        homScent = homScent * 0.783f;
+        homScent = pow( homScent, 3 );
 
         resScent = resScent / 255f;
-        resScent = resScent * 0.83f;
-        resScent = pow( resScent, 4 );
+        resScent = resScent * 0.783f;
+        resScent = pow( resScent, 3 );
 
 
         var thisPixBg: u32 = 0;
@@ -250,7 +269,7 @@ var Ex9_Stimmings2 = () => {
 
             EZ_OUTPUT.grn = resScent; 
 
-            EZ_OUTPUT.blu = randVal;
+            EZ_OUTPUT.blu = resScent;
         }
     `;
 
@@ -292,7 +311,7 @@ var Ex9_Stimmings2 = () => {
         CHUNKS_ACROSS: 1,
         PARTS_ACROSS: 8,            // Note* frag shader considers each part one by one pixel
 
-        CELL_VALS: 3,
+        CELL_VALS: 4,
         
             FRAG_PIXEL_MODE: true, // switches rendering logic to the fragment shader instead of
                                     // many draw calls to two traingle shape  
@@ -358,6 +377,8 @@ var Ex9_Stimmings2 = () => {
                 initialState[ (1*attlength) + (xx*glength) + yy ] = 4;  // next movement direction
                 initialState[ (2*attlength) + (xx*glength) + yy ] =   // scents
                     EZWG.createPackedU32( 0, 0, 0, 0);
+                initialState[ (3*attlength) + (xx*glength) + yy ] =   // scents
+                    EZWG.createPackedU32( 0, 0, 0, 0);
                 
                     //EZWG.createPackedU32( 0, 5 + Math.floor(EZWG.SHA1.random()*25), 127, Math.floor(EZWG.SHA1.random()*256) );
             }
@@ -367,6 +388,8 @@ var Ex9_Stimmings2 = () => {
                 initialState[ (1*attlength) + (xx*glength) + yy ] = 4;  // next movement direction (4) is stationary
                 initialState[ (2*attlength) + (xx*glength) + yy ] =     // scents
                     EZWG.createPackedU32( 0, 0, 0, 0);
+                initialState[ (3*attlength) + (xx*glength) + yy ] =   // scents
+                    EZWG.createPackedU32( 0, 0, 0, 0);
             }
             
             // RESOURCE
@@ -375,14 +398,20 @@ var Ex9_Stimmings2 = () => {
                 initialState[ (1*attlength) + (xx*glength) + yy ] = 4;  // next movement direction (4) is stationary
                 initialState[ (2*attlength) + (xx*glength) + yy ] =     // scents
                     EZWG.createPackedU32( 0, 0, 0, 0);
+                
+                initialState[ (3*attlength) + (xx*glength) + yy ] =   // scents
+                    EZWG.createPackedU32( 0, 0, 0, 0);
             }
 
 
             //Nothing
             else{
                 initialState[ (0*attlength) + (xx*glength) + yy ] = 0;
-                initialState[ (1*attlength) + (xx*glength) + yy ] = 0;  // next movement direction (4) is stationary
+                initialState[ (1*attlength) + (xx*glength) + yy ] = 4;  // next movement direction (4) is stationary
                 initialState[ (2*attlength) + (xx*glength) + yy ] =     // scents
+                    EZWG.createPackedU32( 0, 0, 0, 0);
+                
+                initialState[ (3*attlength) + (xx*glength) + yy ] =   // scents
                     EZWG.createPackedU32( 0, 0, 0, 0);
             }
             
