@@ -19,15 +19,15 @@ var Ex9_Stimmings2 = () => {
         var nextMove: u32 = EZ_CELL_VAL( EZX, 0, EZY, 0, 1 );
 
         // Stores 4 different scent values
-        var SLOT2: u32 = EZ_CELL_VAL( EZX, 0, EZY, 0, 2 );
+        var SLTINDX_STRT: u32 = 2u;
         var SCSLTS: u32 = 2u;   // ALL SCENT SLOTS
 
         // First these values are filled with lowest of each scent 
-        const TTL_INSLTS: u32 = 16u;// * SCSLTS;       // TOTAL IN SCENT VALS (u32s) 8 nghbs times each u32 val needed for scent
-        const TTL_OUTS: u32  = 8u;  // * SCSLTS;         // TOTAL scent outs (u8's) to write back
+        const TTL_INSLTS: u32 = 16u;//8 * SCSLTS;       // TOTAL IN SCENT VALS (u32s) 8 nghbs times each u32 val needed for scent
+        const TTL_OUTS: u32  = 8u;  //4 * SCSLTS;       // TOTAL scent outs (u8's) to write back
 
-        var inScents: array< u32, TTL_INSLTS >; //  *SCSLTS
-        var outScents: array< u32, TTL_OUTS >;// *SCSLTS
+        var inScents: array< u32, TTL_INSLTS >;
+        var outScents: array< u32, TTL_OUTS >;
         outScents[0] = 0u;  //home
         outScents[1] = 0u;  //res
         outScents[2] = 0u;  //work
@@ -62,10 +62,8 @@ var Ex9_Stimmings2 = () => {
             inScents[ i ] = EZ_CELL_VAL( EZX, dx, EZY, dy, 2u + bitind );
             i = i + 1u;
         }
-
-
-        // INSCENTS
-        //[ topleft u32,  topmiddle u32, toprightu32 , ....  , bottomright u32+1 ]
+        // IN-SCENTS for 2 scent slots
+        //[ topleft u32,  topmiddle u32, toprightu32 , ....  , bottommiddle u32+1, bottomright u32+1 ]
 
 
 
@@ -74,28 +72,22 @@ var Ex9_Stimmings2 = () => {
         var crvl: u32    = 0u;              // CUrrent scent val looking at 
         var tmpcrvl: u32 = 0u;              // Current holding val for the contender for lwoestscent
  
-        //      EACH scent go through the 8 directions and then find the lowest
+        // FIND THE HIGHEST SCENT AND SUB 1
         i = 0u;
-        loop {                              // Goes 0-7 (inclusive)
-        //  nghbs,   u8s,   scentSLOTS
-            if i >= 4*8*SCSLTS { break; }   // TODO add the SCSLTS      
-            di = i / 4;                     // Each di is another wheel around the spolks
-            bitind = (i%4) + (i/(4*8))*4;                 // Which outScent to be writing to
-
-                // TODO add the SCSLTS
-            crvl = inScents[ di ];        // Get the entire u32 represeting the scents from this direction//EZ_CELL_VAL( EZX, dx, EZY, dy, 2u );
+        loop {
+            if i >= 4*8*SCSLTS { break; }   // nghbs,   u8s,   scentslts
+            di = i / 4;                     // Each di another index in inScents
+            bitind = (i%4) + (i/(4*8))*4;   // Which outScent to be writing to
+            crvl = inScents[ di ];          // Get the entire u32 represeting the scents from this direction//EZ_CELL_VAL( EZX, dx, EZY, dy, 2u );
             crvl = ( crvl >> (8u*(i%4)) ) & 0x000000FF;     // Starts at FF and .. FF000000  <-then loops around for next scent slot 
             tmpcrvl = outScents[ bitind ];
-
             if( crvl > tmpcrvl ){
                 outScents[ bitind ] = crvl;
             }
             i = i + 1u;
         }
-
-
         i = 0u;
-        loop {    // FIND HIGHEST - take one away for each scent                
+        loop {               
             if i >= TTL_OUTS { break; }
             outScents[ i ] = max( outScents[ i ], 22u );
             outScents[ i ] = outScents[ i ] - 22u;
