@@ -17,11 +17,12 @@ var Ex9_Stimmings2 = () => {
 
         // 0, 1, 2, 3, 4, 5, 6, 7, 8   <-  (4 Stationary)
         var nextMove: u32 = EZ_CELL_VAL( EZX, 0, EZY, 0, 1 );
+
         // Stores 4 different scent values
-        var scntPckge1: u32 = EZ_CELL_VAL( EZX, 0, EZY, 0, 2 );
+        var SLOT2: u32 = EZ_CELL_VAL( EZX, 0, EZY, 0, 2 );
 
         var outScents: array< vec4<u32>, 1 >;
-        outScents[0] = EZ_U32_TO_VEC4( scntPckge1 );
+        outScents[0] = EZ_U32_TO_VEC4( SLOT2 );
 
         // Calculate the PERSONAL priority movement  - based on location
         //      used if there's another entity that wants to go 
@@ -33,14 +34,16 @@ var Ex9_Stimmings2 = () => {
         // No matter what accumulate the neighbours' intentions
         var i: u32 = 0u;
         var ii: u32 = 0u;
+        var scntind: u32 = 0u;
         var dx: i32 = -1i;
         var dy: i32 = -1i;
 
         var realProblems: u32 = 0u;         // Anyone contesting your movement?
  
         loop {                              // Goes 0-7 (inclusive)
-            if i >= 8 { break; }
-            ii = i + (i / 4u);              // Every ii except 4
+            if i >= 8*4 { break; }         
+            ii = (i%8) + ((i%8) / 4u);      // Which way look around
+            scntind = i / 8;                // Which scent to be compiling
             dx = -1 + i32(ii%3u);           // X Value
             dy = -1 + i32(ii/3u);           // Y Value
 
@@ -54,14 +57,19 @@ var Ex9_Stimmings2 = () => {
             i = i + 1u;
         }
 
-        // TODO -verify
-        // IF you are moving - is the spot you are moving to uncontested?
-        // If it is contested - do YOU have priority?
-
-        // If you are NOT moving - is your position safe
-        // or is someone with priortiy going to OVERWRITE U
-
         
+        // TODO -verify
+        // SOMEONE MOVING on to you with higher priority?! 
+        //   IF their movment is on YOU AND they have higher move priority (stimmings over a weed)
+        //      (movements from incoming dont update they just transfer over values...)
+        // COUNT any transformation MAXes hit?
+        //  do that first 
+
+        // IF you are moving - ONLY check for movement contesting -
+        //  because transformations can only be checked for if no move intention OR a move intention but the move was blocked by a movment priority conflict.
+        //
+        // If it is contested - do YOU have priority?
+ 
         // If No one has intensions to move (no realProblems)  
         //      then based on your current movement priority - do you have pers
 
