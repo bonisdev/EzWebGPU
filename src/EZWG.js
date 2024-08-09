@@ -558,7 +558,6 @@ class EZWG {
                     c = a * seed + c;
                     return f32(c & 0x00FFFFFFu)  / f32(0x01000000u);
                 }
-
                 fn EZ_U32_TO_VEC4(value: u32) -> vec4<u32> {
                     // Extract each byte using bitwise operations
                     let byte0: u32 = (value & 0x000000FF);
@@ -895,6 +894,13 @@ class EZWG {
                 c = a * seed + c;
                 return f32(c & 0x00FFFFFFu)  / f32(0x01000000u);
             }
+            fn EZ_RAND_U( seed: u32 ) -> u32 {
+                let a: u32 = 1664525u;
+                var c: u32 = 1013904223u;
+                c = a * seed + c;
+                return (c & 0x00FFFFFFu);
+            }
+
 
             fn EZ_U32_TO_VEC4(value: u32) -> vec4<u32> {
                 // Extract each byte using bitwise operations

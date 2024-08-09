@@ -14,6 +14,8 @@ var Ex9_Stimmings2 = () => {
         var entityType: u32 = SLOT0 & 0x0000FFFF;
         var counter: u32 = (SLOT0 >> 16) & 0x0000FFFF;
         counter = counter + 1u;
+            // This Entity's Sepcial Random
+        var tesr: u32 = counter + EZ_RAND_U( counter + EZX*19 + EZY*183);
 
         // TODO - GET THE ENTITY PROFILE 
 
@@ -22,10 +24,8 @@ var Ex9_Stimmings2 = () => {
         var pPrior: u32 = (nextMove >> 8) & 0x000000FF;   // IDK --- - What is this guys random priority ?!
         nextMove = (nextMove & 0x000000FF);             // NEXT MOVE INTENTION
 
-        // Loop through the neighbours - 
-        // 1) check if gonna be overwritten
-        // 2) 
 
+        
         // Stores 4 different scent values
         var SLTINDX_STRT: u32 = 2u;
         var SCSLTS: u32 = 2u;       // ALL SCENT SLOTS
@@ -46,12 +46,7 @@ var Ex9_Stimmings2 = () => {
         outScents[6] = 0u;  // work
         outScents[7] = 0u;  // enemy
 
-        // Calculate the PERSONAL priority movement  - based on location
-        //      used if there's another entity that wants to go 
-        //      to SAME location as you do
-        
 
-        // EVERYTHING ABOUT THE CELL STATE SHOULD BE LOADED ------------------
 
         // No matter what accumulate the neighbours' intentions
         var i: u32 = 0u; 
@@ -70,29 +65,60 @@ var Ex9_Stimmings2 = () => {
             inScents[ i ] = EZ_CELL_VAL( EZX, dx, EZY, dy, 2u + bitind );
             i = i + 1u;
         }
-        // IN-SCENTS for 2 scent slots
+        // INSCENTS for 2 scent slots
+        // SCHEMA for 2 (TWO) memory slots
         //  [ topleft u32,  topmiddle u32, toprightu32 , ....  , bottommiddle u32+1, bottomright u32+1 ]
 
 
-        // SECOND LOOP THROUGH NEIGHBOURS AND GET THE MOVE INTENTION IF IT'S ON YOU
-        // if nextMove is 4 check for others fkin w you
-        //      and check if you 
-        // if next is NOT 4 check the going to destination
 
-        // Counting Problems unto my person
+        // SECOND LOOP THROUGH NEIGHBOURS AND GET THE MOVE INTENTION IF IT'S ON YOU
+
+        //
+        //          4  ( FOUR ) 
+        //
+        //
+        //
+        //                          IS LIKE THE 
+        //
+        //
+        //
+        //
+        //                                          -1  here
+        //
+        //
+        //
+
+        // Attackers on ME
         var numOfStomprs: u32 = 0u;         // Amount of stompers on me movement?
-        //var comingFromLoc: u32 = 0;
-        //var 
+        var comingFromLoc: u32 = 4u;        // Where is the stomper coming from
+        
+        // Attackers on DESTINATION
+        var movConflicts: u32 = 0u;         // USED if ur going away from ur current spot
+        var immintDestEntity: u32 = 0u;      // if the spot is empty or not
+
 
         // Get your next destination
-        var bestMoveInd: u32 = 4u;  // default is stationary
-        // FIRST check and see if 
-        var movConflicts: u32 = 0u; // used if ur going away from ur current spot
+        var bestMoveInd: u32 = 4u;  // DEFAULT STATIONARY
+        var scntDesireType: u32 = 0u;       // USED if you dont already have a 
+        if( entityType == 0u ){
+            scntDesireType = 0u;
+        }
+        else if( entityType == 1u ){    // JUST GO RIGHT (old man)
+            scntDesireType = 1u;
+        }
+        else if( entityType == 2u ){    // GO TO RES (stimmers)
+            scntDesireType = 2u;
+        }
+        else if( entityType == 3u ){    // Resource does not move
+            scntDesireType = 0u;
+        }
 
 
-        
-        
-        i = 0u;
+        // Quickly get the GOING-TO move spot of ur next move (IF UR GOIN THERE)
+        immintDestEntity = EZ_CELL_VAL( EZX, (-1 + i32(nextMove%3u)), EZY, (-1 + i32(nextMove/3u)), 0u );
+        immintDestEntity = immintDestEntity & 0x0000FFFF;
+
+        i = 0u;         // USED for getting STOMPED on, ACUUMULATING PHYSICS,  "verifying DESTINATION still good".
         loop {
             if i >= 8 { break; }
             di = (i%8) + ((i%8)/4u);        // Which way look around (0 - 7 SKIPS 4!(SELF))
@@ -101,50 +127,169 @@ var Ex9_Stimmings2 = () => {
 
             // TODO IMPLEMENT PHYSICS TOUCHING HERE - ACCUMULATE TRANSFORMATION VALUES HERE
  
-            bitind = EZ_CELL_VAL( EZX, dx, EZY, dy, 1u );   //Checking if your CELL is under attack
+            //      Attackers on YOUR cell
+            bitind = EZ_CELL_VAL( EZX, dx, EZY, dy, 1u );   
             bitind = bitind & 0x000000FF;
             if( di == 8u - bitind ){
-                numOfStomprs = numOfStomprs + 1u;       // used in case ur movement is blocked or ur not moving in the first place
+                numOfStomprs = numOfStomprs + 1u;   // USED in the case ur movement 
+                                                    // is blocked or ur not moving in the first place
+                comingFromLoc = di;                 // Just add this number back on to 
+                                                    // yourself to get the attacker (WHO THIS CELL SHOULD BECOME)
             }
             
-            // Checking around ur going TO location (if u end up going) (nextMove could be 4 at this point still)
+            //      Attackers on TO cell (USED when nextMove not 4)
+            //      "verifying DESTINATION still good"
             bitind = EZ_CELL_VAL( EZX, dx + (-1 + i32(nextMove%3u)), EZY, dy + (-1 + i32(nextMove/3u)), 1u );
             bitind = bitind & 0x000000FF;
-            if( di == 8u - bitind ){                       // not nextMove i THINK ... it's di.?
-                movConflicts = movConflicts + 1u;               // used in case ur moving to a cell that has no other 
+            if( di == 8u - bitind ){
+                movConflicts = movConflicts + 1u;   // USED in the case you are going to MOVE
+                                                    // if 1 in total -> ur good to MOVE
             }
-
-            // Double check that the spot ur movin to is only conatested by ONE
             i = i + 1u;
         }
 
-        
-        // CHECK WHICH TRANSFORMATIONS ARRIVED FIRST? WOULD CANCEL THE MOVEMENT OFF....
 
-        // IF YOU ARE MOVING TO A SPOT
-        if( nextMove != 4 ){
-            if( movConflicts == 1u ){     // AND there's eactly one moving on to yu (YOU)
-                // Yup, you may now move here.
-                // Just reset to 0 though
+        // TODO also here accumualte all the PHysics....
+        var UHOH_UNDRWNT_TRANFSORM: u32 = 0u;
+
+
+        // LOOKING FOR MOVES ON for DESIRED SCENTS
+
+        //          CHOOSING A NEXT INTENDED MOVEMENT
+
+        var otherIntentionsOnGoal: u32 = 0u;      // how many other guys have intentions on the same cell
+
+
+        var tempDesiredMoveInd: u32 = 0u;       // <- TODO this number detrmeind by scent desire
+        
+        // insert scent desires here?! TODO
+
+        if( scntDesireType == 1u ){
+            tempDesiredMoveInd = 0u;
+            bestMoveInd = tempDesiredMoveInd;       // TODO <- temp statement normally SCENT values are compared
+        
+        }
+        else if( scntDesireType == 2u ){
+            tempDesiredMoveInd = 1u;
+            bestMoveInd = tempDesiredMoveInd; 
+        }
+
+        i = 0u;
+        loop {
+            if i >= 8 { break; }
+            di = (i%8) + ((i%8)/4u);
+            dx = -1 + i32(di%3u);
+            dy = -1 + i32(di/3u);
+
+            bitind = EZ_CELL_VAL( EZX, dx + (-1 + i32(tempDesiredMoveInd%3u)), EZY, dy + (-1 + i32(tempDesiredMoveInd/3u)), 1u );
+            bitind = bitind & 0x000000FF;
+            //      bitind is now the movement location of the guys
+             
+
+            if( di == 8u - bitind  ){   // TODO SOMehow movent priotrt
+                otherIntentionsOnGoal = otherIntentionsOnGoal + 1u;
             }
+
+            i = i + 1u;
+        }
+        
+
+
+
+        //         NOW HAVE ALL THE VALUES FOR THE "FINAL VERDICT "
+        // WHAT TO DO W ALL THIS INFORMATION..........
+        //
+
+
+
+        //              POSSIIBLITIES
+
+        /////////       HMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+
+
+
+
+
+        //          TODO Grab the corresponding TRANSFORMATION
+        if( UHOH_UNDRWNT_TRANFSORM > 0u && nextMove == 4u ){  // Always false for now anwyas
+        
+        }
+
+
+
+
+        //          YOU are a free space AND there's exactly ONE moving on to you
+        else if( entityType == 0u ){
+            // RETRIEVE that one and copy its values into you
+            if( numOfStomprs == 1u ){
+                dx = -1 + i32(comingFromLoc%3u);           // X Value
+                dy = -1 + i32(comingFromLoc/3u);           // Y Value
+                            // DO NOT IMPLEMENT PHYSCS HERE....  i think.....// TODO IMPLEMENT PHYSICS TOUCHING HERE - ACCUMULATE TRANSFORMATION VALUES HERE
+                // Get the cell type, and incrase the count.....
+                bitind = EZ_CELL_VAL( EZX, dx, EZY, dy, 0u );  
+                entityType =bitind & 0x0000FFFF;
+                counter =   (bitind >> 16) & 0x0000FFFF;
+                counter =   counter + 1;                      //      *********   only thing from the invading entity that GETS UPDATES  ^ ^^loook at this comment
+
+                bitind = EZ_CELL_VAL( EZX, dx, EZY, dy, 1u );
+                nextMove = 4u;  //(bitind & 0x000000FF);        // <- THIS GETRSE RESET
+                pPrior = (bitind >> 8) & 0x000000FF;
+            }
+            // EMPTY and no one moving on to you... carry on nothingness somehow....
             else{
-                // ZERO or more than one detected movin to that spot so it's NULLED
-                // CANT move to that spot anymore someone else is moving there now next turn
-                nextMove = 4;    //  def not moving this frame beacue ur spot is contested
+                // entity is already set,
+                // counter already went up
+                nextMove = 4u;//is the same (4)
+                //  pPrior = idk
             }
         }
-        // STATIONARY - ( TODO implememt StOMPING on u)
+
+
+
+        //          YOU are an ENTITY    Maybe Move   vs.  Maybe Stay
         else{
-            //if( numOfStomprs > 1 ){
-                // HOWEVER more than one
-            //}
+            // Good to set new move 
+            //      FINAL VERDICT: ->           // For setting new movement intention
+            // FoR SETTING A NEW NEXT MOVE
+            // A best move has been found that matches scent desire <- TODO actually implement the scent scanning
+            // next move is stationary so its open to being set
+            // the spot u are going to has no other INTENTIONS going there, and is an OPEN SLOT ( 0u ) <- SEPARTE THIS FOR MULTIPLE PRIORTITY
+            // and the special random hit your frequency
+            if( bestMoveInd != 4u &&  nextMove == 4u && otherIntentionsOnGoal == 0u && (tesr%5 == 2) ){     //if( nextMove == 4 ){     // No move just update
+                // "entityType" is already updated
+                // "counter" is already updated
+                nextMove = bestMoveInd;
+                // "pPrior" .. do .... someting about this
+                //}
+            }
+
+            // Will activate the movement you have SET -> 
+            // You are going somwhere AND 
+            //      iT is STILL good to move there
+            else if(nextMove != 4u && movConflicts == 1u && immintDestEntity < 1){                                   // Intension to move is still valid?
+                                    //if( numOfStomprs > 1 ){
+                                        // HOWEVER more than one
+                                    //}
+                entityType = 0u;
+                counter = 0u;
+                nextMove = 4u;
+                // "pPrior" .. do .... someting about this
+
+            }
+
+            // YoU have to STAY - your movment was cancelled
+            else{
+                // "entityType" is already updated
+                // "counter" is already updated
+                nextMove = 4u;// reset it back to nuffin agian
+                // "pPrior" .. do .... someting about this
+            }
         }
 
-
-        // YOU are a free space AND there's exactly ONE moving on to you
-        if( entityType == 0u && numOfStomprs == 1u ){
         
-        }
+
+
+        
         // If there's any more than one contender it nulls the movement anyways
         // from the other guys perpectivce
 
@@ -226,18 +371,18 @@ var Ex9_Stimmings2 = () => {
         if( EZ_USER_INPUT[6] > 0){
             if( EZX >= minX && EZX <= maxX && EZY >= minY && EZY <= maxY ){
                 // The case where the cell is in the bounding box of the user's click drag
-                EZ_STATE_OUT[ bufferInd0 ] = 3;     // and coincenidenly sets the counter to 0
+                EZ_STATE_OUT[ bufferInd0 ] = 2;     // and coincenidenly sets the counter to 0
                 EZ_STATE_OUT[ bufferInd1 ] = 4u;    // (stationary)
             }
             else{
-                EZ_STATE_OUT[ bufferInd0 ] = myState;
+                EZ_STATE_OUT[ bufferInd0 ] = myState;               //pPrior
                 EZ_STATE_OUT[ bufferInd1 ] = nextMove;  // TODO bit smoosh rentiy priority
             }
         }
         else{
             EZ_STATE_OUT[ bufferInd0 ] = myState;
             EZ_STATE_OUT[ bufferInd1 ] = nextMove;
-        } 
+        }
 
     `;
 
@@ -367,9 +512,9 @@ var Ex9_Stimmings2 = () => {
     // Usage example
     let config = {
 
-        CELL_SIZE: 16,               // How many pixels across one cell is (fragment renderer
+        CELL_SIZE: 8,               // How many pixels across one cell is (fragment renderer
                                     // MUST get  evenly divided by PARTS_ACROSS
-        CHUNK_SIZE: 32,
+        CHUNK_SIZE: 1024,
         CHUNKS_ACROSS: 1,
         PARTS_ACROSS: 8,            // Note* frag shader considers each part one by one pixel
 
@@ -437,9 +582,9 @@ var Ex9_Stimmings2 = () => {
             if( type < 0.03 ){
                 initialState[ (0*attlength) + (xx*glength) + yy ] = 1;  // TYPE of entity
                 initialState[ (1*attlength) + (xx*glength) + yy ] = 4;  // next movement direction
-                initialState[ (2*attlength) + (xx*glength) + yy ] =   // scents
+                initialState[ (2*attlength) + (xx*glength) + yy ] =     // scents
                     EZWG.createPackedU32( 0, 0, 0, 0);
-                initialState[ (3*attlength) + (xx*glength) + yy ] =   // scents
+                initialState[ (3*attlength) + (xx*glength) + yy ] =     // scents
                     EZWG.createPackedU32( 0, 0, 0, 0);
                 
                     //EZWG.createPackedU32( 0, 5 + Math.floor(EZWG.SHA1.random()*25), 127, Math.floor(EZWG.SHA1.random()*256) );
@@ -450,25 +595,25 @@ var Ex9_Stimmings2 = () => {
                 initialState[ (1*attlength) + (xx*glength) + yy ] = 4;  // next movement direction (4) is stationary
                 initialState[ (2*attlength) + (xx*glength) + yy ] =     // scents
                     EZWG.createPackedU32( 0, 0, 0, 0);
-                initialState[ (3*attlength) + (xx*glength) + yy ] =   // scents
+                initialState[ (3*attlength) + (xx*glength) + yy ] =     // scents
                     EZWG.createPackedU32( 0, 0, 0, 0);
             }
             
             // RESOURCE
-            else if( type < 0.08 ){
+            else if( type < 0.08  && false){
                 initialState[ (0*attlength) + (xx*glength) + yy ] = 3;
                 initialState[ (1*attlength) + (xx*glength) + yy ] = 4;  // next movement direction (4) is stationary
                 initialState[ (2*attlength) + (xx*glength) + yy ] =     // scents
                     EZWG.createPackedU32( 0, 0, 0, 0);
                 
-                initialState[ (3*attlength) + (xx*glength) + yy ] =   // scents
+                initialState[ (3*attlength) + (xx*glength) + yy ] =     // scents
                     EZWG.createPackedU32( 0, 0, 0, 0);
             }
 
 
             //Nothing
             else{
-                initialState[ (0*attlength) + (xx*glength) + yy ] = 0;
+                initialState[ (0*attlength) + (xx*glength) + yy ] = 0;  // This also sets counter to 0
                 initialState[ (1*attlength) + (xx*glength) + yy ] = 4;  // next movement direction (4) is stationary
                 initialState[ (2*attlength) + (xx*glength) + yy ] =     // scents
                     EZWG.createPackedU32( 0, 0, 0, 0);
@@ -489,6 +634,6 @@ var Ex9_Stimmings2 = () => {
 
     // Intital set the default runner to this
     EZ_EXAMPLE = new EZWG( config);
-    EZ_EXAMPLE.UPDATE_INTERVAL = 45;
+    EZ_EXAMPLE.UPDATE_INTERVAL = 45;//45;
     
 };
