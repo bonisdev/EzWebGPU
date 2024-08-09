@@ -7,8 +7,6 @@ var Ex9_Stimmings2 = () => {
 
     let computeWGSL = 
     `
-
-
         // 0, 1, 2, 3       SECOND half is coutner
         var SLOT0: u32 = EZ_CELL_VAL( EZX, 0, EZY, 0, 0 );
         var entityType: u32 = SLOT0 & 0x0000FFFF;
@@ -21,19 +19,17 @@ var Ex9_Stimmings2 = () => {
 
         // 0, 1, 2, 3, 4, 5, 6, 7, 8   <-  (4 Stationary)
         var nextMove: u32 = EZ_CELL_VAL( EZX, 0, EZY, 0, 1 );
-        var pPrior: u32 = (nextMove >> 8) & 0x000000FF;   // IDK --- - What is this guys random priority ?!
-        nextMove = (nextMove & 0x000000FF);             // NEXT MOVE INTENTION
+        var pPrior: u32 = (nextMove >> 8) & 0x000000FF;     // IDK --- - What is this guys random priority ?!
+        nextMove = (nextMove & 0x000000FF);                 // NEXT MOVE INTENTION
 
 
         
-        // Stores 4 different scent values
+        //          Stores 4 different scent values
         var SLTINDX_STRT: u32 = 2u;
         var SCSLTS: u32 = 2u;       // ALL SCENT SLOTS
-
-        // First these values are filled with lowest of each scent 
+        //          First these values are filled with lowest of each scent 
         const TTL_INSLTS: u32 = 16u;    //8 * SCSLTS;       // TOTAL IN SCENT VALS (u32s) 8 nghbs times each u32 val needed for scent
         const TTL_OUTS: u32  = 8u;      //4 * SCSLTS;       // TOTAL scent outs (u8's) to write back
-
         var inScents: array< u32, TTL_INSLTS >;
         var outScents: array< u32, TTL_OUTS >;
         outScents[0] = 0u;  // home
@@ -48,7 +44,7 @@ var Ex9_Stimmings2 = () => {
 
 
 
-        // No matter what accumulate the neighbours' intentions
+        //      No matter what accumulate the neighbours' intentions
         var i: u32 = 0u; 
         var di: u32 = 0u;                   // Direction ind
         var bitind: u32 = 0u;               // Scent ind (the 0-3 inside a u32)
@@ -88,33 +84,21 @@ var Ex9_Stimmings2 = () => {
         //
         //
 
-        // Attackers on ME
+
+
+        //          Attackers on ME
         var numOfStomprs: u32 = 0u;         // Amount of stompers on me movement?
         var comingFromLoc: u32 = 4u;        // Where is the stomper coming from
         
-        // Attackers on DESTINATION
+        //          Attackers on DESTINATION
         var movConflicts: u32 = 0u;         // USED if ur going away from ur current spot
-        var immintDestEntity: u32 = 0u;      // if the spot is empty or not
+        var immintDestEntity: u32 = 0u;     // if the spot is empty or not
+
+        //          Get your next destination
+        var bestMoveInd: u32 = 4u;          // DEFAULT STATIONARY
 
 
-        // Get your next destination
-        var bestMoveInd: u32 = 4u;  // DEFAULT STATIONARY
-        var scntDesireType: u32 = 0u;       // USED if you dont already have a 
-        if( entityType == 0u ){
-            scntDesireType = 0u;
-        }
-        else if( entityType == 1u ){    // JUST GO RIGHT (old man)
-            scntDesireType = 1u;
-        }
-        else if( entityType == 2u ){    // GO TO RES (stimmers)
-            scntDesireType = 2u;
-        }
-        else if( entityType == 3u ){    // Resource does not move
-            scntDesireType = 0u;
-        }
-
-
-        // Quickly get the GOING-TO move spot of ur next move (IF UR GOIN THERE)
+        //          Quickly get the GOING-TO move spot of ur next move (IF UR GOIN THERE)
         immintDestEntity = EZ_CELL_VAL( EZX, (-1 + i32(nextMove%3u)), EZY, (-1 + i32(nextMove/3u)), 0u );
         immintDestEntity = immintDestEntity & 0x0000FFFF;
 
@@ -157,22 +141,20 @@ var Ex9_Stimmings2 = () => {
 
         //          CHOOSING A NEXT INTENDED MOVEMENT
 
-        var otherIntentionsOnGoal: u32 = 0u;      // how many other guys have intentions on the same cell
+        var otherIntentionsOnGoal: u32 = 0u;    // how many other guys have intentions on the same cell
 
 
         var tempDesiredMoveInd: u32 = 0u;       // <- TODO this number detrmeind by scent desire
         
         // insert scent desires here?! TODO
-
-        if( scntDesireType == 1u ){
+        if( entityType == 1u ){                 // JUST GO RIGHT (old man)
             tempDesiredMoveInd = 0u;
-            bestMoveInd = tempDesiredMoveInd;       // TODO <- temp statement normally SCENT values are compared
-        
+            bestMoveInd = tempDesiredMoveInd;   // TODO <- temp statement normally SCENT values are compared
         }
-        else if( scntDesireType == 2u ){
+        else if( entityType == 2u ){            // GO TO RES (stimmers)
             tempDesiredMoveInd = 1u;
-            bestMoveInd = tempDesiredMoveInd; 
-        }
+            bestMoveInd = tempDesiredMoveInd;
+        } 
 
         i = 0u;
         loop {
@@ -199,12 +181,9 @@ var Ex9_Stimmings2 = () => {
         //         NOW HAVE ALL THE VALUES FOR THE "FINAL VERDICT "
         // WHAT TO DO W ALL THIS INFORMATION..........
         //
+        //                      POSSIIBLITIES
 
-
-
-        //              POSSIIBLITIES
-
-        /////////       HMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+        /////////               HMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
 
 
 
@@ -214,10 +193,6 @@ var Ex9_Stimmings2 = () => {
         if( UHOH_UNDRWNT_TRANFSORM > 0u && nextMove == 4u ){  // Always false for now anwyas
         
         }
-
-
-
-
         //          YOU are a free space AND there's exactly ONE moving on to you
         else if( entityType == 0u ){
             // RETRIEVE that one and copy its values into you
@@ -371,8 +346,22 @@ var Ex9_Stimmings2 = () => {
         if( EZ_USER_INPUT[6] > 0){
             if( EZX >= minX && EZX <= maxX && EZY >= minY && EZY <= maxY ){
                 // The case where the cell is in the bounding box of the user's click drag
-                EZ_STATE_OUT[ bufferInd0 ] = 2;     // and coincenidenly sets the counter to 0
-                EZ_STATE_OUT[ bufferInd1 ] = 4u;    // (stationary)
+
+                if( EZ_USER_INPUT[4] == 1){
+                    EZ_STATE_OUT[ bufferInd0 ] = 1;     // and coincenidenly sets the counter to 0
+                    EZ_STATE_OUT[ bufferInd1 ] = 4u;    // (stationary)
+                }
+                else if( EZ_USER_INPUT[4] == 2){
+                    EZ_STATE_OUT[ bufferInd0 ] = 2;     // and coincenidenly sets the counter to 0
+                    EZ_STATE_OUT[ bufferInd1 ] = 4u;    // (stationary)
+                }
+                
+                else{
+                    EZ_STATE_OUT[ bufferInd0 ] = 0;     // and coincenidenly sets the counter to 0
+                    EZ_STATE_OUT[ bufferInd1 ] = 4u;    // (stationary)
+                }
+
+                
             }
             else{
                 EZ_STATE_OUT[ bufferInd0 ] = myState;               //pPrior
@@ -385,6 +374,10 @@ var Ex9_Stimmings2 = () => {
         }
 
     `;
+
+
+
+
 
     let fragmentWGSL = 
     `  
@@ -512,9 +505,9 @@ var Ex9_Stimmings2 = () => {
     // Usage example
     let config = {
 
-        CELL_SIZE: 8,               // How many pixels across one cell is (fragment renderer
+        CELL_SIZE: 16,               // How many pixels across one cell is (fragment renderer
                                     // MUST get  evenly divided by PARTS_ACROSS
-        CHUNK_SIZE: 1024,
+        CHUNK_SIZE: 64,
         CHUNKS_ACROSS: 1,
         PARTS_ACROSS: 8,            // Note* frag shader considers each part one by one pixel
 
@@ -600,7 +593,7 @@ var Ex9_Stimmings2 = () => {
             }
             
             // RESOURCE
-            else if( type < 0.08  && false){
+            else if( type < 0.08 ){
                 initialState[ (0*attlength) + (xx*glength) + yy ] = 3;
                 initialState[ (1*attlength) + (xx*glength) + yy ] = 4;  // next movement direction (4) is stationary
                 initialState[ (2*attlength) + (xx*glength) + yy ] =     // scents

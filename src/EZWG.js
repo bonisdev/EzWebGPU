@@ -183,6 +183,7 @@ class EZWG {
         // this.LAST_CELL_Y = -1
 
         this.liveInput = ( new Float32Array( this.USER_INPUT_BUFFER_SIZE ) ).fill(0);
+        this.lastKeyDetected = '';
         this.ezweb = {
             isDragging: false,
             CELL_SIZE: this.CELL_SIZE,
@@ -368,7 +369,7 @@ class EZWG {
 		this.canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
         this.canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
 
-        //this.canvas.addEventListener('keydown', (event) => handleKeyDown(event, this.canvas, this));
+        //this.canvas.addEventListener('keydown', this.handleKeyDown.bind(this));
 
 
 		this.canvas.width = this.GRID_SIZE * this.CELL_SIZE;
@@ -1499,7 +1500,25 @@ class EZWG {
                 this.liveInput[1] = (this.ezweb.GRID_SIZE - 1) - this.ezweb.dragStartY;
                 this.liveInput[2] = this.ezweb.dragEndX;
                 this.liveInput[3] = (this.ezweb.GRID_SIZE - 1) - this.ezweb.dragEndY;
-                this.liveInput[4] = 1;
+                
+                
+                if( this.lastKeyDetected === '2' ){
+                    this.liveInput[4] = 2;
+                }
+                else if( this.lastKeyDetected === '3' ){
+                    this.liveInput[4] = 3;
+                }
+                else if( this.lastKeyDetected === '4' ){
+                    this.liveInput[4] = 4;
+                }
+                else if( this.lastKeyDetected === '5' ){
+                    this.liveInput[4] = 5;
+                }
+                else if( this.lastKeyDetected === '1' || true ){
+                    this.liveInput[4] = 1;
+                }
+
+
                 this.liveInput[5] = 0;
                 this.liveInput[6] = 1;
 
@@ -1509,6 +1528,12 @@ class EZWG {
             }
             console.log(this.liveInput);
         }
+    }
+    
+    handleKeyInput(keyString) {
+        console.log(keyString);
+        this.lastKeyDetected = keyString;
+
     }
 
     static SHA1 = {

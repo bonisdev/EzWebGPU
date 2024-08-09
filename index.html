@@ -468,6 +468,28 @@
             //loadExample( 8 )//stimmings
         };
 
+        document.addEventListener('keydown', function(event) {
+            // Get the currently focused element
+            //const focusedElement = document.activeElement;
+
+            // Print out the key that was pressed
+            // console.log(`Key pressed: ${event.key}`);
+            // console.log(''+event.key)
+
+            if( EZ_EXAMPLE ){
+                EZ_EXAMPLE.handleKeyInput( ''+event.key );
+            }
+
+            // Perform different actions based on the focused element
+            // if (focusedElement.tagName === 'INPUT') {
+            //     console.log(`Input field with ID ${focusedElement.id} is focused`);
+            // } else if (focusedElement.tagName === 'BUTTON') {
+            //     console.log(`Button with ID ${focusedElement.id} is focused`);
+            // } else {
+            //     console.log('Other element is focused');
+            // }
+        });
+
 
     </script>
 </body>
