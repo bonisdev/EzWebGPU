@@ -50,7 +50,6 @@ var Ex9_Stimmings2 = () => {
         var bitind: u32 = 0u;               // Scent ind (the 0-3 inside a u32)
         var dx: i32 = -1i;
         var dy: i32 = -1i;
-
         // FIRST MAKE ALL THE SCENT VALUE READS U NEED:
         loop {                              // Goes 0-7 (inclusive)
             if i >= TTL_INSLTS { break; }   // from 0 to TTL_INSLTS-1
@@ -68,7 +67,7 @@ var Ex9_Stimmings2 = () => {
 
 
         // SECOND LOOP THROUGH NEIGHBOURS AND GET THE MOVE INTENTION IF IT'S ON YOU
-
+        //
         //
         //          4  ( FOUR ) 
         //
@@ -505,9 +504,9 @@ var Ex9_Stimmings2 = () => {
     // Usage example
     let config = {
 
-        CELL_SIZE: 16,               // How many pixels across one cell is (fragment renderer
+        CELL_SIZE: 8,               // How many pixels across one cell is (fragment renderer
                                     // MUST get  evenly divided by PARTS_ACROSS
-        CHUNK_SIZE: 64,
+        CHUNK_SIZE: 256,
         CHUNKS_ACROSS: 1,
         PARTS_ACROSS: 8,            // Note* frag shader considers each part one by one pixel
 
