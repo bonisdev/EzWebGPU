@@ -229,6 +229,7 @@
     <script src="src/examples/Ex10_Weird_Integer.js"></script>
     <script src="src/examples/Ex11_NNRecorder.js"></script>
     <script src="src/examples/Ex13_GA_Test.js"></script>
+    <script src="src/examples/Ex14_FreeVerticies.js"></script>
     
 </head>
 
@@ -275,6 +276,7 @@
                 <option value="9">Weird Integer</option>
                 <option value="10">NN Recorder</option>
                 <option value="11">GA Test</option>
+                <option value="12">Free Verticies</option>
             </select>
         </div>
         <p> Just include the <a href="https://github.com/bonisdev/EzWebGPU/blob/main/src/EZWG.js">EZWG.js</a> file anyhwere in your browser to access these functions</p>
@@ -415,7 +417,9 @@
         // Just NN scratch pad
             Ex11_NNRecorder,
 		//Trying GA 
-            Ex13_GA_Test
+            Ex13_GA_Test,
+        // Free vertices for like entities
+            Ex14_FreeVerticies
         ];
         
 
@@ -464,7 +468,7 @@
 
         window.onload = ()=>{
             clearExample();
-            loadExample(ALL_EXAMPLES.length-4)
+            loadExample(ALL_EXAMPLES.length-1)
             //loadExample( 8 )//stimmings
         };
 

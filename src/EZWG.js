@@ -34,6 +34,7 @@ class EZWG {
             STARTING_CONFIG: EZWG.ALL_ZERO,
             COMPUTE_WGSL: '',
             FRAGMENT_WGSL: '',
+            FREE_VERTICIES_MODE: false,      // if this is true you also have to specify the coordinates of the vertice
             BY_PIXEL: false,    // if this is true run the fragment shader from the perspective of each pixel instead of WidthxHeightxTriangles
             READ_BACK_FUNC: ( currentStep, entireBuffer ) => {},
             CELL_SIZE: 8,
@@ -68,10 +69,14 @@ class EZWG {
         this.READ_BACK_FUNC = this.config.READ_BACK_FUNC;
         this.CELL_SIZE = this._validatePositiveInteger(this.config.CELL_SIZE, 'CELL_SIZE');
         
-        this.FRAG_PIXEL_MODE =  this.config.FRAG_PIXEL_MODE;
+        this.FRAG_PIXEL_MODE = this.config.FRAG_PIXEL_MODE;
+        this.FREE_VERTICIES_MODE = this.config.FREE_VERTICIES_MODE;
             this.FRAG_PIXEL_PER_COMP = 1;   // defualt is 1 and it's not specifiable from the constructor it gets generated
         // If it's not an EVEN fit of parts into cell size then make a noise about it cause it's weird
         if( this.FRAG_PIXEL_MODE ){
+            if( this.FREE_VERTICIES_MODE ){
+                throw new Error("Cant be in FRAG_PIXEL_MODE while also wanting FREE_VERTICIES_MODE");
+            }
             // 
             if( this.CELL_SIZE % this.PARTS_ACROSS !== 0 ){
                 throw new Error("when in FRAG_PIXEL_MODE: this.PARTS_ACROSS does not fit evenly in this.CELL_SIZE | " + this.PARTS_ACROSS + " " + this.CELL_SIZE)
@@ -80,6 +85,7 @@ class EZWG {
                 this.FRAG_PIXEL_PER_COMP = Math.floor( this.CELL_SIZE / this.PARTS_ACROSS );
             }
         }
+
 
         //this.FRAG_PIXEL_PER_COMP = this._validatePositiveInteger(this.config.FRAG_PIXEL_PER_COMP, 'FRAG_PIXEL_PER_COMP');
 
@@ -521,8 +527,13 @@ class EZWG {
 
         var cellShaderWSGL = '';
         
-        // Normal vertices (clunky)
+        // Normal vertices (clunky) - BUT allows for free verticiey mode ? i THINKG?
         if( !this.FRAG_PIXEL_MODE ){
+
+            // Note * if this.FRAG_PIXEL_MODE is false 
+            // then the this.FREE_VERTICIES_MODE flag has the potential to be TRUE 
+            // adjust the cell Shader acoordingly 
+
             cellShaderWSGL = `
                 struct VertexOutput {
                     @builtin(position) position: vec4f,
