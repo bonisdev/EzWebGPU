@@ -34,7 +34,6 @@ class EZWG {
             STARTING_CONFIG: EZWG.ALL_ZERO,
             COMPUTE_WGSL: '',
             FRAGMENT_WGSL: '',
-            FREE_VERTICIES_MODE: false,      // if this is true you also have to specify the coordinates of the vertice
             BY_PIXEL: false,    // if this is true run the fragment shader from the perspective of each pixel instead of WidthxHeightxTriangles
             READ_BACK_FUNC: ( currentStep, entireBuffer ) => {},
             CELL_SIZE: 8,
@@ -69,23 +68,21 @@ class EZWG {
         this.READ_BACK_FUNC = this.config.READ_BACK_FUNC;
         this.CELL_SIZE = this._validatePositiveInteger(this.config.CELL_SIZE, 'CELL_SIZE');
         
-        this.FRAG_PIXEL_MODE = this.config.FRAG_PIXEL_MODE;
-        this.FREE_VERTICIES_MODE = this.config.FREE_VERTICIES_MODE;
+        this.FRAG_PIXEL_MODE =  this.config.FRAG_PIXEL_MODE;
             this.FRAG_PIXEL_PER_COMP = 1;   // defualt is 1 and it's not specifiable from the constructor it gets generated
         // If it's not an EVEN fit of parts into cell size then make a noise about it cause it's weird
         if( this.FRAG_PIXEL_MODE ){
-            if( this.FREE_VERTICIES_MODE ){
-                throw new Error("Cant be in FRAG_PIXEL_MODE while also wanting FREE_VERTICIES_MODE");
-            }
             // 
             if( this.CELL_SIZE % this.PARTS_ACROSS !== 0 ){
                 throw new Error("when in FRAG_PIXEL_MODE: this.PARTS_ACROSS does not fit evenly in this.CELL_SIZE | " + this.PARTS_ACROSS + " " + this.CELL_SIZE)
             }
-            else{
-                this.FRAG_PIXEL_PER_COMP = Math.floor( this.CELL_SIZE / this.PARTS_ACROSS );
-            }
-        }
-
+            // else{
+            //     this.FRAG_PIXEL_PER_COMP = Math.floor( this.CELL_SIZE / this.PARTS_ACROSS );
+            //     if( this.FRAG_PIXEL_PER_COMP !== 1){
+            //         throw new Error("ummm not sure if this would really work everytime if this was anything other than 1 | this.FRAG_PIXEL_PER_COMP: " + this.FRAG_PIXEL_PER_COMP + " ")
+            //     }
+            // }
+        } 
 
         //this.FRAG_PIXEL_PER_COMP = this._validatePositiveInteger(this.config.FRAG_PIXEL_PER_COMP, 'FRAG_PIXEL_PER_COMP');
 
@@ -132,7 +129,11 @@ class EZWG {
 
         // Game time specific variables
         //128 x 128
-        this.GRID_SIZE = (this.CHUNK_SIZE * this.CHUNKS_ACROSS)
+        this.GRID_SIZE = (this.CHUNK_SIZE * this.CHUNKS_ACROSS);
+
+        // Render mode
+        this.render_canv_w = this.GRID_SIZE * this.CELL_SIZE;
+        this.render_canv_h = this.GRID_SIZE * this.CELL_SIZE;
 
         let goodArea = -1;
         for(let n = 2;n < 9;n++){
@@ -163,6 +164,7 @@ class EZWG {
 
 
         this.userInputTempStorage = null
+        this.userIn_uniformBuffer = null
         this.simulationPipeline = null
         this.bindGroups = []
 
@@ -189,6 +191,7 @@ class EZWG {
         // this.LAST_CELL_Y = -1
 
         this.liveInput = ( new Float32Array( this.USER_INPUT_BUFFER_SIZE ) ).fill(0);
+        this.liveInpuUniform = ( new Float32Array( this.USER_INPUT_BUFFER_SIZE ) ).fill(0);
         this.lastKeyDetected = '';
         this.ezweb = {
             isDragging: false,
@@ -212,6 +215,7 @@ class EZWG {
             this.vertexBuffer?.destroy();
             this.cellStateStorage?.forEach(buffer => buffer?.destroy());
             this.userInputTempStorage?.destroy();
+            this.userIn_uniformBuffer?.destroy();
             this.cellStateStorageForRead?.destroy();
             this.device = null;
             this.context = null;
@@ -378,13 +382,13 @@ class EZWG {
         //this.canvas.addEventListener('keydown', this.handleKeyDown.bind(this));
 
 
-		this.canvas.width = this.GRID_SIZE * this.CELL_SIZE;
-		this.canvas.height = this.GRID_SIZE *  this.CELL_SIZE
+		this.canvas.width = this.render_canv_w;//this.GRID_SIZE * this.CELL_SIZE;
+		this.canvas.height = this.render_canv_h;//this.GRID_SIZE *  this.CELL_SIZE
 		this.canvas.style.width = this.GRID_SIZE *  this.CELL_SIZE
 		this.canvas.style.height = this.GRID_SIZE *  this.CELL_SIZE
         console.log(this.CONTAINER_ID)
         let daparent = document.getElementById(this.CONTAINER_ID)
-        if( !daparent ) new Error("The parent container with ID " + this.CONTAINER_ID+ "for EzWebGPU is not found");
+        if( !daparent ) throw (new Error("The parent container with ID " + this.CONTAINER_ID+ "for EzWebGPU is not found"));
         daparent.appendChild(this.canvas)
 
 
@@ -405,15 +409,15 @@ class EZWG {
 			{ name: "color", type: "vec4" }
 		];
 
-
+        let smolr = 1
         if(this.FRAG_PIXEL_MODE){
             this.vertices = new Float32Array([  
-                -1,     -1,  // Bottom-left
-                1,      -1,  // Bottom-right
-                -1,     1,  // Top-left
-                -1,     1,  // Top-left
-                1,      -1,  // Bottom-right
-                1,      1,  // Top-right
+                -smolr,     -smolr,  // Bottom-left
+                smolr,      -smolr,  // Bottom-right
+                -smolr,     smolr,  // Top-left
+                -smolr,     smolr,  // Top-left
+                smolr,      -smolr,  // Bottom-right
+                smolr,      smolr,  // Top-right
              
             ]);
         }
@@ -427,12 +431,12 @@ class EZWG {
                 //1,  1,
                 //-1,  1,
     
-                -1*(1/this.PARTS_ACROSS), -1*(1/this.PARTS_ACROSS), // Triangle 1
-                1*(1/this.PARTS_ACROSS), -1*(1/this.PARTS_ACROSS),
-                1*(1/this.PARTS_ACROSS),  1*(1/this.PARTS_ACROSS), 
-                -1*(1/this.PARTS_ACROSS), -1*(1/this.PARTS_ACROSS), // Triangle 2
-                1*(1/this.PARTS_ACROSS),  1*(1/this.PARTS_ACROSS),
-                -1*(1/this.PARTS_ACROSS),  1*(1/this.PARTS_ACROSS), 
+                -smolr*(1/this.PARTS_ACROSS), -smolr*(1/this.PARTS_ACROSS), // Triangle 1
+                smolr*(1/this.PARTS_ACROSS), -smolr*(1/this.PARTS_ACROSS),
+                smolr*(1/this.PARTS_ACROSS),  smolr*(1/this.PARTS_ACROSS), 
+                -smolr*(1/this.PARTS_ACROSS), -smolr*(1/this.PARTS_ACROSS), // Triangle 2
+                smolr*(1/this.PARTS_ACROSS),  smolr*(1/this.PARTS_ACROSS),
+                -smolr*(1/this.PARTS_ACROSS),  smolr*(1/this.PARTS_ACROSS), 
             
                 //// Front face
                 //-1, -1, 1,  // Vertex 0
@@ -503,14 +507,18 @@ class EZWG {
 				}, 
 				{
 					binding: 3,
-					visibility: GPUShaderStage.COMPUTE,
+					visibility: GPUShaderStage.COMPUTE | GPUShaderStage.FRAGMENT,
 					buffer: { type: "storage" } // user input
 				}, 
 				{
 					binding: 4,
 					visibility: GPUShaderStage.VERTEX | GPUShaderStage.COMPUTE | GPUShaderStage.FRAGMENT,
 					buffer: { type: "read-only-storage" } // large static block of config numbers
-				}
+				},{
+                    binding: 5,
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.COMPUTE | GPUShaderStage.FRAGMENT, // Make sure the visibility includes VERTEX
+                    buffer: { type: "uniform" } // Change from 'storage' to 'uniform'
+                }
                 //,
 				//{
 				//	binding: 5,
@@ -527,13 +535,12 @@ class EZWG {
 
         var cellShaderWSGL = '';
         
-        // Normal vertices (clunky) - BUT allows for free verticiey mode ? i THINKG?
+        // Normal vertices (clunky)
+
+
+                // TODO the CURRENT_ZOOM  DOES NOT EFFECT VERTEX MODE 
+
         if( !this.FRAG_PIXEL_MODE ){
-
-            // Note * if this.FRAG_PIXEL_MODE is false 
-            // then the this.FREE_VERTICIES_MODE flag has the potential to be TRUE 
-            // adjust the cell Shader acoordingly 
-
             cellShaderWSGL = `
                 struct VertexOutput {
                     @builtin(position) position: vec4f,
@@ -544,8 +551,10 @@ class EZWG {
                 };
 
                 @group(0) @binding(0) var<uniform> grid: vec2f;
-                @group(0) @binding(1) var<storage> EZ_STATE_IN: array<${this.BUFFER_TYPE}>; 
+                @group(0) @binding(1) var<storage> EZ_STATE_IN: array<${this.BUFFER_TYPE}>;
+                @group(0) @binding(3) var<storage, read_write> EZ_USER_INPUT: array<f32>;
                 @group(0) @binding(4) var<storage> EZ_STORAGE: array<${this.STORAGE_TYPE}>;
+                //@group(0) @binding(5) var<uniform> EZ_USER_INPUT_UNFM: array<f32>;
 
                 // Confines to a chunk location
                 fn EZ_helper_cellIndexChkRel(cell: vec2u, ogcx: u32, ogcy: u32, chk: u32) -> u32 {
@@ -604,7 +613,7 @@ class EZWG {
                     const EZ_CELL_VALS: u32 = ${this.CELL_VALS}u;
                     const CHUNKS_ACROSS: u32 = ${this.CHUNKS_ACROSS}u;
                     const EZ_CHUNK_SIZE: u32 = ${this.CHUNK_SIZE}u;
-                    const EZ_FRAG_PPC: u32 = ${this.FRAG_PIXEL_PER_COMP}u;  //FRAG_PIXEL_PER_COMP
+                    var EZ_FRAG_PPC: u32 = ${this.FRAG_PIXEL_PER_COMP}u;  //FRAG_PIXEL_PER_COMP
                     let EZ_CELLS_ACROSS_X: u32 = u32( grid.x );
                     let EZ_CELLS_ACROSS_Y: u32 = u32( grid.y );
                     let EZ_TOTAL_CELLS = EZ_CELLS_ACROSS_X * EZ_CELLS_ACROSS_Y;
@@ -628,8 +637,8 @@ class EZWG {
                     var EZ_CHUNK_IND: u32 = (EZ_CHUNK_X  + EZ_CHUNK_Y * CHUNKS_ACROSS);
                     
                     // Cell coordinates relative to their respective chunk
-                    let EZX_R = EZX % EZ_CHUNK_SIZE;
-                    let EZY_R = EZY % EZ_CHUNK_SIZE;
+                    var EZX_R = EZX % EZ_CHUNK_SIZE;
+                    var EZY_R = EZY % EZ_CHUNK_SIZE;
 
                     //--------------------------------------------------------- Extra values for drawing
 
@@ -687,8 +696,10 @@ class EZWG {
                 };
                 
                 @group(0) @binding(0) var<uniform> grid: vec2f;
-                @group(0) @binding(1) var<storage> EZ_STATE_IN: array<${this.BUFFER_TYPE}>; 
+                @group(0) @binding(1) var<storage> EZ_STATE_IN: array<${this.BUFFER_TYPE}>;
+                @group(0) @binding(3) var<storage, read_write> EZ_USER_INPUT: array<f32>;
                 @group(0) @binding(4) var<storage> EZ_STORAGE: array<${this.STORAGE_TYPE}>;
+                //@group(0) @binding(5) var<uniform> EZ_USER_INPUT_UNFM: array<f32>;
 
                 // Confines to a chunk location
                 fn EZ_helper_cellIndexChkRel(cell: vec2u, ogcx: u32, ogcy: u32, chk: u32) -> u32 {
@@ -740,7 +751,10 @@ class EZWG {
                 @vertex
                 fn vertexMain(@location(0) position: vec2f) -> VertexOutput {
                     var output: VertexOutput;
-                    output.position = vec4f(position, 0.0, 1.0);
+                    var translation = vec2<f32>(0.0f, 0.1f);    //EZ_USER_INPUT[9]
+                    var transformedPosition = (position + translation) * 1f;//EZ_USER_INPUT_UNFM[9];
+
+                    output.position = vec4f(transformedPosition, 0.0, 1.0);
                     return output;
                 }
 
@@ -751,7 +765,7 @@ class EZWG {
                      
                     let EZ_PARTS_ACROSS_F: f32 = ${this.PARTS_ACROSS}f;
                     let caWu: u32 = ${this.PARTS_ACROSS}u;      // used in the vertex mode 
-                    let cFaWu: u32= ${this.PARTS_ACROSS*this.FRAG_PIXEL_PER_COMP}u;
+                    var cFaWu: u32= ${this.PARTS_ACROSS*this.FRAG_PIXEL_PER_COMP}u;
 
                     const EZ_CELL_VALS: u32 = ${this.CELL_VALS}u;
                     const CHUNKS_ACROSS: u32 = ${this.CHUNKS_ACROSS}u;
@@ -777,8 +791,8 @@ class EZWG {
                     var EZ_CHUNK_IND: u32 = (EZ_CHUNK_X  + EZ_CHUNK_Y * CHUNKS_ACROSS);
                     
                     // Cell coordinates relative to their respective chunk
-                    let EZX_R = EZX % EZ_CHUNK_SIZE;
-                    let EZY_R = EZY % EZ_CHUNK_SIZE;
+                    var EZX_R = EZX % EZ_CHUNK_SIZE;
+                    var EZY_R = EZY % EZ_CHUNK_SIZE;
 
                     // --------------------------------------------------------- Extra values for drawing
 
@@ -787,7 +801,7 @@ class EZWG {
                     var EZ_COMP_Y: u32 = (EZ_RAW_ROW % cFaWu) / EZ_FRAG_PPC;
                     var EZ_COMP_IND: u32 = EZ_COMP_X + EZ_COMP_Y * (EZ_TOTAL_CELLS*caWu);
 					
-                    const EZ_cellParts: u32 = ${this.PARTS_ACROSS}u;
+                    var EZ_cellParts: u32 = ${this.PARTS_ACROSS}u;
  
                     ${this.FRAGMENT_WGSL}
 					
@@ -870,6 +884,7 @@ class EZWG {
 			@group(0) @binding(2) var<storage, read_write> EZ_STATE_OUT: array<${this.BUFFER_TYPE}>;
 			@group(0) @binding(3) var<storage, read_write> EZ_USER_INPUT: array<f32>;
 			@group(0) @binding(4) var<storage> EZ_STORAGE: array<${this.STORAGE_TYPE}>;
+            //@group(0) @binding(5) var<uniform> EZ_USER_INPUT_UNFM: array<f32>;
 
             // Confines to entire grid space
 			// fn EZ_helper_cellIndex(cell: vec2u) -> u32 {
@@ -908,9 +923,14 @@ class EZWG {
             }
             fn EZ_RAND_U( seed: u32 ) -> u32 {
                 let a: u32 = 1664525u;
-                var c: u32 = 1013904223u;
-                c = a * seed + c;
-                return (c & 0x00FFFFFFu);
+                let c: u32 = 1013904223u;
+                var result: u32 = a * seed + c;
+                result ^= result >> 16;
+                return result;
+                // let a: u32 = 1664525u;
+                // var c: u32 = 1013904223u;
+                // c = a * seed + c;
+                // return (c & 0x00FFFFFFu);
             }
 
 
@@ -1059,6 +1079,16 @@ class EZWG {
 			});
 		this.device.queue.writeBuffer( this.userInputTempStorage, 0, this.liveInput );
 
+ 
+        this.userIn_uniformBuffer = 
+            this.device.createBuffer({
+            label: "User Input uniform",
+            size: this.liveInpuUniform.byteLength,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        });
+        // Write data to the uniform buffer
+        this.device.queue.writeBuffer(this.userIn_uniformBuffer, 0, this.liveInpuUniform);
+
 
 
 
@@ -1180,6 +1210,9 @@ class EZWG {
 				}, {
 					binding: 4,
 					resource: { buffer: extraConfigStorage }
+				}, {
+					binding: 5,
+					resource: { buffer: this.userIn_uniformBuffer }
 				}
                 ],
 			}),
@@ -1201,6 +1234,9 @@ class EZWG {
 				}, {
 					binding: 4,
 					resource: { buffer: extraConfigStorage }
+				}, {
+					binding: 5,
+					resource: { buffer: this.userIn_uniformBuffer }
 				}
                 ],
 			}),
@@ -1222,9 +1258,36 @@ class EZWG {
 
             // Write value of the buffer w users values 
             this.device.queue.writeBuffer( this.userInputTempStorage, 0, this.liveInput);
+
+            this.device.queue.writeBuffer( this.userIn_uniformBuffer, 0, this.liveInpuUniform)
+
             this.liveInput[6] = 0;
 
             this.liveInput[ this.USER_INPUT_BUFFER_SIZE - 1 ] = this.step
+
+            // this.liveInput[ 7 ] = CURRENT_PAN_X;
+            // this.liveInput[ 8 ] = CURRENT_PAN_Y;
+            // this.liveInput[ 9 ] = CURRENT_ZOOM;
+            // this.liveInput[ 10 ] = CURRENT_RMODE;   // rendre mode
+            // if( RT_UP ){
+            //     this.liveInput[ 11 ] = 7;
+            // }
+            // else if( RT_DOWN ){
+            //     this.liveInput[ 11 ] = 1;
+            // }
+            // else if( RT_LEFT ){ 
+            //     this.liveInput[ 11 ] = 3;
+            // }
+            // else if( RT_RIGHT ){
+            //     this.liveInput[ 11 ] = 5;
+            // }
+            // else if( RT_X ){
+            //     this.liveInput[ 11 ] = 9;   // dead stop ('x'  button)
+            // }
+            // else{
+            //     this.liveInput[ 11 ] = 4;
+            // }
+
 
             //}
             //// The real indicator is userIn
@@ -1493,8 +1556,11 @@ class EZWG {
         const rect = this.canvas.getBoundingClientRect();
         const xx = event.clientX - rect.left;
         const yy = event.clientY - rect.top;
-        this.ezweb.dragStartX = Math.floor(xx / this.ezweb.CELL_SIZE);
-        this.ezweb.dragStartY = Math.floor(yy / this.ezweb.CELL_SIZE);
+
+        let CURRENT_PAN_X = 0;
+        let CURRENT_PAN_Y = 0;
+        this.ezweb.dragStartX = ((Math.floor(xx / this.ezweb.CELL_SIZE) + CURRENT_PAN_X) + this.GRID_SIZE) % this.GRID_SIZE;
+        this.ezweb.dragStartY = ((Math.floor(yy / this.ezweb.CELL_SIZE) - CURRENT_PAN_Y) + this.GRID_SIZE) % this.GRID_SIZE;
     }
 
     handleMouseUp(event) {
@@ -1503,31 +1569,43 @@ class EZWG {
             const rect = this.canvas.getBoundingClientRect();
             const xx = event.clientX - rect.left;
             const yy = event.clientY - rect.top;
-            this.ezweb.dragEndX = Math.floor(xx / this.ezweb.CELL_SIZE);
-            this.ezweb.dragEndY = Math.floor(yy / this.ezweb.CELL_SIZE);
+            let CURRENT_PAN_X = 0;
+            let CURRENT_PAN_Y = 0;
+            this.ezweb.dragEndX = (Math.floor(xx / this.ezweb.CELL_SIZE) + CURRENT_PAN_X + this.GRID_SIZE) % this.GRID_SIZE;
+            this.ezweb.dragEndY = (Math.floor(yy / this.ezweb.CELL_SIZE) - CURRENT_PAN_Y + this.GRID_SIZE) % this.GRID_SIZE;
 
             if (this.liveInput[6] < 1) {
                 this.liveInput[0] = this.ezweb.dragStartX;
                 this.liveInput[1] = (this.ezweb.GRID_SIZE - 1) - this.ezweb.dragStartY;
                 this.liveInput[2] = this.ezweb.dragEndX;
                 this.liveInput[3] = (this.ezweb.GRID_SIZE - 1) - this.ezweb.dragEndY;
-                
-                
-                if( this.lastKeyDetected === '2' ){
-                    this.liveInput[4] = 2;
-                }
-                else if( this.lastKeyDetected === '3' ){
-                    this.liveInput[4] = 3;
-                }
-                else if( this.lastKeyDetected === '4' ){
-                    this.liveInput[4] = 4;
-                }
-                else if( this.lastKeyDetected === '5' ){
-                    this.liveInput[4] = 5;
-                }
-                else if( this.lastKeyDetected === '1' || true ){
-                    this.liveInput[4] = 1;
-                }
+                 
+                let CURRENT_TOOL = 1;
+                this.liveInput[4] = CURRENT_TOOL ;
+                // if( this.lastKeyDetected === '2' ){
+                //     this.liveInput[4] = 2;
+                // }
+                // else if( this.lastKeyDetected === '3' ){
+                //     this.liveInput[4] = 3;
+                // }
+                // else if( this.lastKeyDetected === '4' ){
+                //     this.liveInput[4] = 4;
+                // }
+                // else if( this.lastKeyDetected === '5' ){
+                //     this.liveInput[4] = 5;
+                // }
+                // else if( this.lastKeyDetected === '6' ){
+                //     this.liveInput[4] = 6;
+                // }
+                // else if( this.lastKeyDetected === '7' ){
+                //     this.liveInput[4] = 7;
+                // }
+                // else if( this.lastKeyDetected === '8' ){
+                //     this.liveInput[4] = 8;
+                // }
+                // else if( this.lastKeyDetected === '1'){// || true ){
+                //     this.liveInput[4] = 1;
+                // }
 
 
                 this.liveInput[5] = 0;
@@ -1535,14 +1613,16 @@ class EZWG {
 
                 this.ezweb.LAST_CELL_X = this.ezweb.dragStartX;
                 this.ezweb.LAST_CELL_Y = this.ezweb.dragStartY;
-
+                console.log('set new input:', this.liveInput)
             }
-            console.log(this.liveInput);
+            else{
+                console.log('rejected input')
+            }
         }
     }
     
     handleKeyInput(keyString) {
-        console.log(keyString);
+        //console.log(keyString);
         this.lastKeyDetected = keyString;
 
     }
@@ -1799,9 +1879,21 @@ class EZWG {
         return (s4 << 24) | (s3 << 16) | (s2 << 8) | s1; 
     }
 
+    
+    static createPackedU8( s2, s1 ){ 
+        return   (s2 << 4) | s1; 
+    }
+    
+    static createPackedU32_4( s8, s7, s6, s5, s4, s3, s2, s1 ){ 
+        return (s8 << 28) | (s7 << 24) | (s6 << 20) | (s5 << 16) | (s4 << 12) | (s3 << 8) | (s2 << 4) | s1; 
+    }
+
     // 0 - 65535,
     static createPackedU32_16( s2, s1 ){
         return  (s2 << 16) | s1;
+    }
+    static createPackedU16_8( s2, s1 ){
+        return  (s2 << 8) | s1;
     }
     
     static unpackU32(packedValue) {
