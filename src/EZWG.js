@@ -76,13 +76,16 @@ class EZWG {
             if( this.CELL_SIZE % this.PARTS_ACROSS !== 0 ){
                 throw new Error("when in FRAG_PIXEL_MODE: this.PARTS_ACROSS does not fit evenly in this.CELL_SIZE | " + this.PARTS_ACROSS + " " + this.CELL_SIZE)
             }
-            // else{
-            //     this.FRAG_PIXEL_PER_COMP = Math.floor( this.CELL_SIZE / this.PARTS_ACROSS );
-            //     if( this.FRAG_PIXEL_PER_COMP !== 1){
-            //         throw new Error("ummm not sure if this would really work everytime if this was anything other than 1 | this.FRAG_PIXEL_PER_COMP: " + this.FRAG_PIXEL_PER_COMP + " ")
-            //     }
-            // }
-        } 
+            else{
+                this.FRAG_PIXEL_PER_COMP = Math.floor( this.CELL_SIZE / this.PARTS_ACROSS );
+                if( this.FRAG_PIXEL_PER_COMP !== 1){
+                    //throw new Error("ummm zoom wouldnt really work if this was anything other than 1 | this.FRAG_PIXEL_PER_COMP: " + this.FRAG_PIXEL_PER_COMP + " ")
+                }
+            }
+        }
+        else{
+            //throw new Error("This version of ewzgpu needs fragment mode now... | this.FRAG_PIXEL_MODE: " + this.FRAG_PIXEL_MODE + " ")
+        }
 
         //this.FRAG_PIXEL_PER_COMP = this._validatePositiveInteger(this.config.FRAG_PIXEL_PER_COMP, 'FRAG_PIXEL_PER_COMP');
 
@@ -132,8 +135,8 @@ class EZWG {
         this.GRID_SIZE = (this.CHUNK_SIZE * this.CHUNKS_ACROSS);
 
         // Render mode
-        this.render_canv_w = this.GRID_SIZE * this.CELL_SIZE;
-        this.render_canv_h = this.GRID_SIZE * this.CELL_SIZE;
+        // this.render_canv_w = this.GRID_SIZE * this.CELL_SIZE;
+        // this.render_canv_h = this.GRID_SIZE * this.CELL_SIZE;
 
         let goodArea = -1;
         for(let n = 2;n < 9;n++){
@@ -149,10 +152,10 @@ class EZWG {
         }
 
 
-        this.TOTAL_CELLS = this.GRID_SIZE * this.GRID_SIZE 
-        this.UPDATE_INTERVAL = 45
+        this.TOTAL_CELLS = this.GRID_SIZE * this.GRID_SIZE;
+        this.UPDATE_INTERVAL = 45;
 
-        this.USER_INPUT_BUFFER_SIZE = 8*8 
+        this.USER_INPUT_BUFFER_SIZE = 8*8;
 
         this.loaded = false;
         this.READ_BUFFER_BUSY = false;
@@ -160,24 +163,24 @@ class EZWG {
         this.suicide = false;
 
         this.canvas = null;
-        this.context = null
+        this.context = null;
 
 
-        this.userInputTempStorage = null
-        this.userIn_uniformBuffer = null
-        this.simulationPipeline = null
-        this.bindGroups = []
+        this.userInputTempStorage = null;
+        this.userIn_uniformBuffer = null;
+        this.simulationPipeline = null;
+        this.bindGroups = [];
 
-        this.cellStateArray = []
+        this.cellStateArray = [];
 
-        this.device = null
-        this.cellPipeline = null
-        this.vertexBuffer = null
-        this.vertices = []              // will end up being the square you draw over and over again (TODO look and see if drawing 2 triangle everytime for each thing
+        this.device = null;
+        this.cellPipeline = null;
+        this.vertexBuffer = null;
+        this.vertices = [];              // will end up being the square you draw over and over again (TODO look and see if drawing 2 triangle everytime for each thing
 
-        this.cellStateStorageForRead = []
+        this.cellStateStorageForRead = [];
 
-        this.cellStateStorage = []
+        this.cellStateStorage = [];
 
  
 
@@ -382,8 +385,8 @@ class EZWG {
         //this.canvas.addEventListener('keydown', this.handleKeyDown.bind(this));
 
 
-		this.canvas.width = this.render_canv_w;//this.GRID_SIZE * this.CELL_SIZE;
-		this.canvas.height = this.render_canv_h;//this.GRID_SIZE *  this.CELL_SIZE
+		this.canvas.width = this.GRID_SIZE * this.CELL_SIZE;
+		this.canvas.height = this.GRID_SIZE *  this.CELL_SIZE
 		this.canvas.style.width = this.GRID_SIZE *  this.CELL_SIZE
 		this.canvas.style.height = this.GRID_SIZE *  this.CELL_SIZE
         console.log(this.CONTAINER_ID)
@@ -623,7 +626,7 @@ class EZWG {
                     // var EZ_RAW_COL: u32 = EZ_INSTANCE % (EZ_CELLS_ACROSS_X * caWu);
                     // var EZ_RAW_ROW: u32 = EZ_INSTANCE / (EZ_CELLS_ACROSS_Y * caWu); 
                     
-                    var EZ_RAW_COL: u32 = EZ_INSTANCE % (EZ_CELLS_ACROSS_X * caWu);
+                    var EZ_RAW_COL: u32 = EZ_INSTANCE % (EZ_CELLS_ACROSS_X * caWu);             // TODO the CURRENT_ZOOM in stimmings doesn't effect this one
                     var EZ_RAW_ROW: u32 = EZ_INSTANCE / (EZ_CELLS_ACROSS_Y * caWu); 
                     
                     let EZ_CELL = vec2f( f32(EZ_RAW_COL / caWu), f32(EZ_RAW_ROW / caWu) );
@@ -657,7 +660,7 @@ class EZWG {
                     var EZ_h_smlDx: f32 = (1/EZ_PARTS_ACROSS_F) * EZ_h_clsX;
                     var EZ_h_smlDy: f32 = (1/EZ_PARTS_ACROSS_F) * EZ_h_clsY;
 
-                    EZ_h_pos.x = EZ_h_pos.x + (f32(EZ_COMP_X) * EZ_h_smlDx) - (EZ_h_clsX*0.5) + EZ_h_smlDx/2;
+                    EZ_h_pos.x = EZ_h_pos.x + (f32(EZ_COMP_X) * EZ_h_smlDx) - (EZ_h_clsX*0.5) + EZ_h_smlDx/2;   // TODO the CURRENT_ZOOM in stimmings doesn't effect this one
                     EZ_h_pos.y = EZ_h_pos.y + (f32(EZ_COMP_Y) * EZ_h_smlDy) - (EZ_h_clsY*0.5) + EZ_h_smlDy/2;
 
                     EZ_OUTPUT.position = vec4f(EZ_h_pos, 0, 1);
@@ -682,6 +685,8 @@ class EZWG {
 
             `
         }
+
+        
         // Potentially better pixel by pixel way on the fragment shader
         else{
             cellShaderWSGL = `
@@ -776,7 +781,7 @@ class EZWG {
                     let EZ_TOTAL_CELLS = EZ_CELLS_ACROSS_X * EZ_CELLS_ACROSS_Y;
 
                     // Global grid counting each component as a cell
-                    var EZ_RAW_COL: u32 = u32(floor(fragCoord.x)) / 1;
+                    var EZ_RAW_COL: u32 = u32(floor(fragCoord.x)) / 1;                                  // TODO the CURRENT_ZOOM in stimmings doesn't effect the VERTEX version of this variable
                         // TODO this issue right here
                     var EZ_RAW_ROW: u32 = (EZ_CELLS_ACROSS_Y*cFaWu) - (u32(floor(fragCoord.y))/1) - 1u; 
                     
@@ -1265,28 +1270,11 @@ class EZWG {
 
             this.liveInput[ this.USER_INPUT_BUFFER_SIZE - 1 ] = this.step
 
-            // this.liveInput[ 7 ] = CURRENT_PAN_X;
-            // this.liveInput[ 8 ] = CURRENT_PAN_Y;
-            // this.liveInput[ 9 ] = CURRENT_ZOOM;
-            // this.liveInput[ 10 ] = CURRENT_RMODE;   // rendre mode
-            // if( RT_UP ){
-            //     this.liveInput[ 11 ] = 7;
-            // }
-            // else if( RT_DOWN ){
-            //     this.liveInput[ 11 ] = 1;
-            // }
-            // else if( RT_LEFT ){ 
-            //     this.liveInput[ 11 ] = 3;
-            // }
-            // else if( RT_RIGHT ){
-            //     this.liveInput[ 11 ] = 5;
-            // }
-            // else if( RT_X ){
-            //     this.liveInput[ 11 ] = 9;   // dead stop ('x'  button)
-            // }
-            // else{
-            //     this.liveInput[ 11 ] = 4;
-            // }
+            this.liveInput[ 7 ] = 0;
+            this.liveInput[ 8 ] = 0;
+            this.liveInput[ 9 ] = 0;
+            this.liveInput[ 10 ] = 0;   // rendre mode
+             
 
 
             //}
@@ -1556,11 +1544,8 @@ class EZWG {
         const rect = this.canvas.getBoundingClientRect();
         const xx = event.clientX - rect.left;
         const yy = event.clientY - rect.top;
-
-        let CURRENT_PAN_X = 0;
-        let CURRENT_PAN_Y = 0;
-        this.ezweb.dragStartX = ((Math.floor(xx / this.ezweb.CELL_SIZE) + CURRENT_PAN_X) + this.GRID_SIZE) % this.GRID_SIZE;
-        this.ezweb.dragStartY = ((Math.floor(yy / this.ezweb.CELL_SIZE) - CURRENT_PAN_Y) + this.GRID_SIZE) % this.GRID_SIZE;
+        this.ezweb.dragStartX = ((Math.floor(xx / this.ezweb.CELL_SIZE)) + this.GRID_SIZE) % this.GRID_SIZE;
+        this.ezweb.dragStartY = ((Math.floor(yy / this.ezweb.CELL_SIZE)) + this.GRID_SIZE) % this.GRID_SIZE;
     }
 
     handleMouseUp(event) {
@@ -1569,19 +1554,16 @@ class EZWG {
             const rect = this.canvas.getBoundingClientRect();
             const xx = event.clientX - rect.left;
             const yy = event.clientY - rect.top;
-            let CURRENT_PAN_X = 0;
-            let CURRENT_PAN_Y = 0;
-            this.ezweb.dragEndX = (Math.floor(xx / this.ezweb.CELL_SIZE) + CURRENT_PAN_X + this.GRID_SIZE) % this.GRID_SIZE;
-            this.ezweb.dragEndY = (Math.floor(yy / this.ezweb.CELL_SIZE) - CURRENT_PAN_Y + this.GRID_SIZE) % this.GRID_SIZE;
+            this.ezweb.dragEndX = (Math.floor(xx / this.ezweb.CELL_SIZE) + this.GRID_SIZE) % this.GRID_SIZE;
+            this.ezweb.dragEndY = (Math.floor(yy / this.ezweb.CELL_SIZE) + this.GRID_SIZE) % this.GRID_SIZE;
 
             if (this.liveInput[6] < 1) {
                 this.liveInput[0] = this.ezweb.dragStartX;
                 this.liveInput[1] = (this.ezweb.GRID_SIZE - 1) - this.ezweb.dragStartY;
                 this.liveInput[2] = this.ezweb.dragEndX;
                 this.liveInput[3] = (this.ezweb.GRID_SIZE - 1) - this.ezweb.dragEndY;
-                 
-                let CURRENT_TOOL = 1;
-                this.liveInput[4] = CURRENT_TOOL ;
+                
+                this.liveInput[4] = 0;
                 // if( this.lastKeyDetected === '2' ){
                 //     this.liveInput[4] = 2;
                 // }

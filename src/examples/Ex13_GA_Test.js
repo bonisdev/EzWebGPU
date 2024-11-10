@@ -7,78 +7,150 @@ var Ex13_GA_Test= () => {
 
 
 
-    var Max_Gene_Moves = 8;
+    var Max_Gene_Instructions = 24;
 
     let computeWGSL = 
-    `
-        let cellAttribute: u32 = 0u;
-        var cellValue = 0u;
-        var maxGeneMoves: u32 = ${Max_Gene_Moves}u;
-        var geneSize = EZ_CELL_VALS * maxGeneMoves;
-        var storageInd: u32 = EZ_CHUNK_IND * geneSize;  // <- times the number of each gene
-        var ii: u32 = 0; 
- 
-        // Set them to current
-        var outValues: array< vec4<u32>, EZ_CELL_VALS >;
-        ii = 0;
-        loop {
-            if ii >= EZ_CELL_VALS { break; }
-            outValues[ii] = EZ_U32_TO_VEC4( EZ_CELL_VAL(EZX, 0, EZY, 0, ii) );
-            ii = ii + 1u;
-        }
-
-        // TODO maybe need to separate into a read array when adding more operations to a single value
-        // for one pass 
-
-
-        var instruction: u32 = 0u;
+    `  
+        var maxGeneMoves: u32 = ${Max_Gene_Instructions}u; 
+        var storageIndShift: u32 = EZ_CHUNK_IND * maxGeneMoves;  // <- times the number of each gene
         
-        ii = 0;
-        loop {
-            if ii >= EZ_CELL_VALS { break; } // MAX INSTRUCTION SIZE
-
-            instruction = EZ_STORAGE[ storageInd + ii ]; 
  
-            var v_inst: vec4<u32> = EZ_U32_TO_VEC4( instruction );
+        const totalVals: u32 = 4u * EZ_CELL_VALS;
 
-            // If over threshold then activate the instruction in this slot
-            if( outValues[ii].x >= outValues[ii].y ){
+        // Set them to current
+        var outValues: array< u32, totalVals >;
 
-                // The first part is the op code:
-                var opCode = v_inst.x % 4u;
-                var toCode = v_inst.w % EZ_CELL_VALS;
+        var grabbedMem: u32 = 0u;
 
-                // Add 1
-                if( opCode == 0 ){
-                    outValues[toCode].x = outValues[toCode].x + 1;
-                }
-                // Add 10
-                else if( opCode == 1 ){
-                    outValues[toCode].x = outValues[toCode].x + 10;
-                }
-                // Shift right 1
-                else if( opCode == 2 ){
-                    outValues[toCode].x = outValues[toCode].x >> 1;
-                }
-                // Shift left 1
-                else if( opCode == 3 ){
-                    outValues[toCode].x = outValues[toCode].x << 1;
-                } 
 
-                // CONSTRAIN new output values to this number
-                outValues[toCode].x = outValues[toCode].x % 256;
+        var ii: u32 = 0; 
+        loop {
+            if ii >= totalVals { break; }
+
+            if( ii % 4u == 0u ){
+                grabbedMem = EZ_CELL_VAL( EZX, 0, EZY, 0, ii / 4u );
             }
 
+            outValues[ii] = ( grabbedMem >> ((ii%4u)*8u) ) & 0x000000FFu;
+            ii = ii + 1u;
+        }
+ 
+
+        
+        // ii = 0u;         // USED for getting STOMPED on, ACUUMULATING PHYSICS,  "verifying DESTINATION still good".
+        // loop {
+        //     if ii >= 8 { break; }
+        //     di = (ii%8) + ((ii%8)/4u);        // Which way look around (0 - 7 SKIPS 4!(SELF))
+        //     dx = -1 + i32(di%3u);           // X Value
+        //     dy = -1 + i32(di/3u);           // Y Value 
+        //     //      Attackers on YOUR cell
+        //     bitind = EZ_CELL_VAL( EZX, dx, EZY, dy, 1u );
+        //     ii = ii + 1u;
+        // }
+
+        var instruction: u32 = 0u;
+
+        var jj: u32 = 0u;           // for inspecting neighbours
+        var nOffset: u32 = 0u;      // getting the adjusted offset
+        var kk: u32 = 0u;           // the adjusted offset neighbour
+        var di: u32 = 0u;
+        var dx: i32 = -1i;
+        var dy: i32 = -1i;
+        var bestValOfInt: u32 = 0u;  // can be 0 to 255
+        var bestNeigh: u32 = 0u;     // can be 0 to 7  (best neighbour)
+        var tempigess: u32 = 0u;    
+
+        ii = 0;
+        loop {
+            if ii >= maxGeneMoves { break; } // MAX INSTRUCTION SIZE
+
+            instruction = EZ_STORAGE[ storageIndShift + ii ];       // Get the correct instruction (single U32 value)
+            var v_inst: vec4<u32> = EZ_U32_TO_VEC4( instruction );
+ 
+            // The first part is the op code:
+            var opCode = v_inst.x   % 4u;       // Specify the type of entity power 
+            var toCode = v_inst.y   % totalVals;
+            var fromCode = v_inst.z % totalVals;
+
+            var attOfInt = v_inst.w;            // Attribute of interest 
+                                                // MAPS to one of the 4*memVals attributes of a cell (so max 255, and max 64 u32 mem spots per cell)
+
+            // random offset for tie breaker
+            nOffset = EZ_RAND_U( opCode*11u + toCode*127u + fromCode*199u + attOfInt*166u + EZX_R*219u + EZY_R*397u );
+            nOffset = nOffset % 16000u;
+
+
+            jj = 0u;
+            loop {
+                if jj >= 8 { break; }
+                kk = (jj + nOffset) % 8u;       // Apply the random shift to handle the case of all rando...
+                di = (kk%8) + ((kk%8)/4u);      // Which way look around (0 - 7 SKIPS 4!(SELF))
+                dx = -1 + i32(di%3u);           // X Value
+                dy = -1 + i32(di/3u);           // Y Value
+
+                tempigess = EZ_CELL_VAL( EZX, dx, EZY, dy, attOfInt / 4u );
+                tempigess = ( tempigess >> ((attOfInt%4u)*8u) ) & 0x000000FFu;
+
+                if( tempigess > bestValOfInt ){
+                    bestValOfInt = tempigess;
+                    bestNeigh = kk;
+                }
+                
+                jj = jj + 1u;
+            }
+
+            // Now that the best neighbour has been found based on the val of interest
+            // use that neighbours 'fromCode'  
+            di = (bestNeigh%8) + ((bestNeigh%8)/4u);
+            dx = -1 + i32(di%3u);
+            dy = -1 + i32(di/3u);
+
+            tempigess = EZ_CELL_VAL( EZX, dx, EZY, dy, fromCode / 4u );         // NOW THAT WE HAVE THE NEIGHBOUR THATS IMPORTANT
+            tempigess = ( tempigess >> ((fromCode%4u)*8u) ) & 0x000000FFu;      // GET THE VALUE THIS GENE INSTRUCTION WANTS
+
+            // ^ ^ ^ ^ ^ ^ will be between 0 and 255
+
+
+            // Add 1
+            if( opCode == 0 ){
+                outValues[toCode] = tempigess + 1u;
+            }
+            // Add 10
+            else if( opCode == 1 ){
+                outValues[toCode] = tempigess + 10u;
+            }
+            // Bit shift right 1
+            else if( opCode == 2 ){
+                outValues[toCode] = tempigess >> 1u;
+            }
+            // Bit shift left 1
+            else if( opCode == 3 ){
+                outValues[toCode] = tempigess << 1u;
+            } 
+
+
+            
+            // CONSTRAIN new output values to this number
+            outValues[toCode] = outValues[toCode] % 256; 
+
             ii = ii + 1u;
         }
 
 
+        // UPDATE 
+        //      - - - - - - - - NEXT ROUND
         ii = 0;
         loop {
             if ii >= EZ_CELL_VALS { break; }
-            //cellValue = EZ_CELL_VAL( EZX, 0, EZY, 0, ii );
 
-            EZ_STATE_OUT[ EZ_CELL_IND + (ii*EZ_TOTAL_CELLS) ] = EZ_VEC4_TO_U32( outValues[ii] );//outValues[ii];//cellValue;//EZ_VEC4_TO_U32( cellVec );
+            instruction = ii * 4u; // re-use this 
+
+            EZ_STATE_OUT[ EZ_CELL_IND + (ii*EZ_TOTAL_CELLS) ] = 
+                (outValues[instruction + 0] & 0x000000FF) |
+                ((outValues[instruction + 1] & 0x000000FF) << 8) |
+                ((outValues[instruction + 2] & 0x000000FF) << 16) |
+                ((outValues[instruction + 3] & 0x000000FF) << 24);
+
             ii = ii + 1u;
         }
         
@@ -89,58 +161,81 @@ var Ex13_GA_Test= () => {
         var rrr: f32 = 0;
         var ggg: f32 = 0;
         var bbb: f32 = 0;
-         
-        var rawCellVal0: u32 = EZ_CELL_VAL( EZX, 0, EZY, 0, 0 );
-        var rawCellVal1: u32 = EZ_CELL_VAL( EZX, 0, EZY, 0, 1 );
-        var rawCellVal2: u32 = EZ_CELL_VAL( EZX, 0, EZY, 0, 2 );
 
-        var vec0: vec4<u32> = EZ_U32_TO_VEC4( rawCellVal0 );
-        var vec1: vec4<u32> = EZ_U32_TO_VEC4( rawCellVal1 );
-        var vec2: vec4<u32> = EZ_U32_TO_VEC4( rawCellVal2 );
+        var valsToUse: u32 = 4u;        // < -   USE the first 4 u32 values in a cell
+ 
+        // then each val in the mem spot 
+        
+        var ii: u32 = 0u;
+        var rawCellVal: u32 = 0u;
+        var calcedPower: f32 = 0f;
+        loop {
+            if ii >= valsToUse { break; }
 
-        rrr = f32(vec0.x) / 255.0f;
-        ggg = f32(vec1.x) / 255.0f;
-        bbb = f32(vec2.x) / 255.0f;
+            rawCellVal = EZ_CELL_VAL( EZX, 0, EZY, 0, ii );
 
-        EZ_OUTPUT.red = rrr;
-        EZ_OUTPUT.grn = ggg;
-        EZ_OUTPUT.blu = bbb; 
+            calcedPower = 1f;       // f32( ((rawCellVal>>24)&0x000000FF) ) / 255f;
+
+            rrr += calcedPower * f32( (rawCellVal & 0x000000FF) ) / 255f;
+            ggg += calcedPower * f32( ((rawCellVal >> 8) & 0x000000FF) ) / 255f;
+            bbb += calcedPower * f32( ((rawCellVal >> 16) & 0x000000FF) ) / 255f;
+ 
+            ii = ii + 1u;
+        }
+
+        calcedPower =  f32( valsToUse );         // divide by amount of cell's looked at 
+
+
+        EZ_OUTPUT.red = rrr / calcedPower;
+        EZ_OUTPUT.grn = ggg / calcedPower;
+        EZ_OUTPUT.blu = bbb / calcedPower; 
     `;
 
 
-    // Generate the population
-    let totalGenesToTry = 4 * 4
-    let geneSize = 5 * Max_Gene_Moves;//  5 unique cell values and a possible max of 8 moves 
-    let allGenes = new Uint32Array( totalGenesToTry * geneSize )
-    EZWG.SHA1.seed('test12345')
-    for(let v = 0;v < allGenes.length;v++){
-        allGenes[v] = EZWG.randomU32( EZWG.SHA1.random() )
-    }
+    // todo:
+    //    find what value youre looking for ( any of the 255 vals)
+    //    set the starting position random for checking neighbours ()
+    //      (so that if all the same value like 0 then it still gives a random num)
+    //    from the highest priority neighbour for that instruction
+
 
     
     // Usage example
     let config = {
 
-        CELL_SIZE: 4,
-        CHUNK_SIZE: 16,
-        CHUNKS_ACROSS: 4,   // One gene per chunk
-        PARTS_ACROSS: 1,
+        CELL_SIZE: 16,//4,       // nxn pixels per cell 
+        CHUNK_SIZE: 8,      // nxn cells per digital brain
+        CHUNKS_ACROSS: 4,   // nxn digital brains per batch
+        PARTS_ACROSS: 1,    // nxn sqaures to display per cell
 
-        CELL_VALS: 5,
+        CELL_VALS: 5,       // 5 u32's 
+            // **** NOTE ^^^^^^      
+            //      MAX OF 64 BECAUSE THE HIGHEST VAL address specificable has to fit in a 255 number, and 65 would be over te max.
 		
-        READ_BACK_FREQ: 100,     // Every 15 time steps read back the gpu buffer
-        READ_BACK_FUNC: ( currentStep, entireBuffer ) => { console.log('-------');console.log('entireBuffer', entireBuffer.length, 'at time step', currentStep); },
+        READ_BACK_FREQ: 111,     // Every 15 time steps read back the gpu buffer
+        READ_BACK_FUNC: ( currentStep, entireBuffer ) => {
+            console.log('-------')
+            console.log('entireBuffer', entireBuffer.length, 'at time step', currentStep);
 
-        STORAGE: allGenes,
+            console.log(currentStep)
+            // if( currentStep === 0 ){
+            //     console.log('logg')
+            // }
+
+
+
+        },
+
+        //STORAGE: allGenes,
 
         BUFFER_TYPE: 'u32',
         STORAGE_TYPE: 'u32',      // float to store the weights of the NN 
 
-            FRAG_PIXEL_MODE: false,  // switches rendering logic to the fragment shader instead of
+            FRAG_PIXEL_MODE: false,  // if true  ->  switches rendering logic to the fragment shader instead of
                                     // many draw calls to two traingle shape  
 
         CONTAINER_ID:   'demoCanvasContainer',    // DOM id to insdert canvas to
-        RAND_SEED:      'randomseed12345678910', 
+        RAND_SEED:      'randomseed12345678910' + seedForCurrentBatch, 
         STARTING_CONFIG: EZWG.ALL_RANDS,//ALL_BINS,      // couldve been EZWG.ALL_ZERO
         COMPUTE_WGSL: `
             // The custom WGSL code goes here
@@ -152,6 +247,28 @@ var Ex13_GA_Test= () => {
             ${fragmentWGSL}
         `
     };
+
+    
+    // The seed for this batch of chunks
+    var seedForCurrentBatch = "testhsetidsemtset12";
+    seedForCurrentBatch += Math.random() + ":" + Date.now();
+    console.log('seed for batch:', seedForCurrentBatch)
+
+    // Generate the population
+    let totalGenesToTry = config.CHUNKS_ACROSS * config.CHUNKS_ACROSS; 
+    let allGenes = new Uint32Array( totalGenesToTry * Max_Gene_Instructions );
+    EZWG.SHA1.seed('test123456' + seedForCurrentBatch );
+    for(let v = 0;v < allGenes.length;v++){
+        allGenes[v] = EZWG.createPackedU32( 
+            Math.floor(256*EZWG.SHA1.random()), 
+            Math.floor(256*EZWG.SHA1.random()),
+            Math.floor(256*EZWG.SHA1.random()),
+            Math.floor(256*EZWG.SHA1.random()) );
+            //EZWG.randomU32( EZWG.SHA1.random() )
+    }
+
+    config.STORAGE = allGenes;
+
 
 
 
@@ -165,7 +282,7 @@ var Ex13_GA_Test= () => {
     for(let b = 0;b < initialState.length;b++){
         initialState[b] = 0;
     } 
-    EZWG.SHA1.seed('ddfddd')
+    //EZWG.SHA1.seed('ddfddd' + seedForCurrentBatch)
 
     // Loop through each xx, and yy
     for(let xx = 0;xx < glength;xx++){
@@ -174,29 +291,24 @@ var Ex13_GA_Test= () => {
             // Loop through each value
             for(let cval = 0;cval < config.CELL_VALS;cval++){
 
-                if( cval === 0 ){
-                    initialState[ (cval*attlength) + (xx*glength) + yy ] = 
-                        // DunknowYet,   DecayRate*10,    Threshold,    Value,   
-                        EZWG.createPackedU32( 0, 5 + Math.floor(EZWG.SHA1.random()*25), 127, Math.floor(EZWG.SHA1.random()*256) );
-                }
-                else if( cval === 1 ){
-                    initialState[ (cval*attlength) + (xx*glength) + yy ] = 
-                        EZWG.createPackedU32( 0, 5 + Math.floor(EZWG.SHA1.random()*25), 127, Math.floor(EZWG.SHA1.random()*256) );
-                }
-                else if( cval === 2 ){
-                    initialState[ (cval*attlength) + (xx*glength) + yy ] = 
-                        EZWG.createPackedU32( 0, 5 + Math.floor(EZWG.SHA1.random()*25), 127, Math.floor(EZWG.SHA1.random()*256) );
-                }
-                else {
-                    initialState[ (cval*attlength) + (xx*glength) + yy ] = 
-                        EZWG.createPackedU32( 
-                            0,                                          // idk yet 
-                            5 + Math.floor(EZWG.SHA1.random()*25),      //Decay rate
-                            Math.floor(EZWG.SHA1.random()*223),         //Threshold 
-                            Math.floor(EZWG.SHA1.random()*223),         //Value
-                        );
-                }
+                // CORNER 
+                if( xx % config.CHUNK_SIZE === 0 && yy % config.CHUNK_SIZE === 0 ){
 
+                    initialState[ (cval*attlength) + (xx*glength) + yy ] = 
+                     
+                        EZWG.createPackedU32( 
+                            Math.floor(256*EZWG.SHA1.random()), 
+                            Math.floor(256*EZWG.SHA1.random()),
+                            Math.floor(256*EZWG.SHA1.random()),
+                            Math.floor(256*EZWG.SHA1.random()) ); 
+                }
+                else{
+                    initialState[ (cval*attlength) + (xx*glength) + yy ] = 
+                    
+                        EZWG.createPackedU32( 10, 11, 12, 13 );
+                }
+  
+                 
   
             }
         } 
@@ -208,6 +320,7 @@ var Ex13_GA_Test= () => {
 
     // Intital set the default runner to this
     EZ_EXAMPLE = new EZWG( config);
+    EZ_EXAMPLE.UPDATE_INTERVAL = 275;
     
     
 };
