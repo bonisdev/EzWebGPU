@@ -22,37 +22,24 @@ var Ex13_GA_Test= () => {
 
         var grabbedMem: u32 = 0u;
 
-
+        // GET ALL 0-255 cell values in an EZ to read u32 array
         var ii: u32 = 0; 
         loop {
             if ii >= totalVals { break; }
-
             if( ii % 4u == 0u ){
                 grabbedMem = EZ_CELL_VAL( EZX, 0, EZY, 0, ii / 4u );
             }
-
             outValues[ii] = ( grabbedMem >> ((ii%4u)*8u) ) & 0x000000FFu;
             ii = ii + 1u;
         }
  
 
-        
-        // ii = 0u;         // USED for getting STOMPED on, ACUUMULATING PHYSICS,  "verifying DESTINATION still good".
-        // loop {
-        //     if ii >= 8 { break; }
-        //     di = (ii%8) + ((ii%8)/4u);        // Which way look around (0 - 7 SKIPS 4!(SELF))
-        //     dx = -1 + i32(di%3u);           // X Value
-        //     dy = -1 + i32(di/3u);           // Y Value 
-        //     //      Attackers on YOUR cell
-        //     bitind = EZ_CELL_VAL( EZX, dx, EZY, dy, 1u );
-        //     ii = ii + 1u;
-        // }
 
         var instruction: u32 = 0u;
 
         var jj: u32 = 0u;           // for inspecting neighbours
         var nOffset: u32 = 0u;      // getting the adjusted offset
-        var kk: u32 = 0u;           // the adjusted offset neighbour
+        var kk: u32 = 0u;           // the neighbour with adjusted offset
         var di: u32 = 0u;
         var dx: i32 = -1i;
         var dy: i32 = -1i;
@@ -78,8 +65,6 @@ var Ex13_GA_Test= () => {
             // random offset for tie breaker
             nOffset = EZ_RAND_U( opCode*11u + toCode*127u + fromCode*199u + attOfInt*166u + EZX_R*219u + EZY_R*397u );
             nOffset = nOffset % 16000u;
-
-
             jj = 0u;
             loop {
                 if jj >= 8 { break; }
@@ -98,6 +83,7 @@ var Ex13_GA_Test= () => {
                 
                 jj = jj + 1u;
             }
+
 
             // Now that the best neighbour has been found based on the val of interest
             // use that neighbours 'fromCode'  
@@ -185,7 +171,6 @@ var Ex13_GA_Test= () => {
 
         calcedPower =  f32( valsToUse );         // divide by amount of cell's looked at 
 
-
         EZ_OUTPUT.red = rrr / calcedPower;
         EZ_OUTPUT.grn = ggg / calcedPower;
         EZ_OUTPUT.blu = bbb / calcedPower; 
@@ -203,12 +188,12 @@ var Ex13_GA_Test= () => {
     // Usage example
     let config = {
 
-        CELL_SIZE: 16,//4,       // nxn pixels per cell 
-        CHUNK_SIZE: 8,      // nxn cells per digital brain
+        CELL_SIZE: 4,//4,       // nxn pixels per cell 
+        CHUNK_SIZE: 32,      // nxn cells per digital brain
         CHUNKS_ACROSS: 4,   // nxn digital brains per batch
         PARTS_ACROSS: 1,    // nxn sqaures to display per cell
 
-        CELL_VALS: 5,       // 5 u32's 
+        CELL_VALS: 6,       // 5 u32's 
             // **** NOTE ^^^^^^      
             //      MAX OF 64 BECAUSE THE HIGHEST VAL address specificable has to fit in a 255 number, and 65 would be over te max.
 		
@@ -302,6 +287,8 @@ var Ex13_GA_Test= () => {
                             Math.floor(256*EZWG.SHA1.random()),
                             Math.floor(256*EZWG.SHA1.random()) ); 
                 }
+
+                // ANYthing else
                 else{
                     initialState[ (cval*attlength) + (xx*glength) + yy ] = 
                     
@@ -320,7 +307,7 @@ var Ex13_GA_Test= () => {
 
     // Intital set the default runner to this
     EZ_EXAMPLE = new EZWG( config);
-    EZ_EXAMPLE.UPDATE_INTERVAL = 275;
+    EZ_EXAMPLE.UPDATE_INTERVAL = 55;
     
     
 };

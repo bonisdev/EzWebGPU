@@ -444,6 +444,7 @@
                     ejample.classList.add('hidden')
                 }
             }
+
             let ekxcample = document.getElementById('exampleCode' + exampleIndex)
             if(ekxcample){
                 ekxcample.classList.remove('hidden')
@@ -456,6 +457,7 @@
             })();
 
         }
+
         function clearExample(){
             //document.getElementById('extraTitle').innerHTML = '';
             if( INTERVAL_ID ){
@@ -473,11 +475,9 @@
             }, EZ_EXAMPLE.UPDATE_INTERVAL ); 
         }
 
-
         window.onload = ()=>{
             clearExample();
-            loadExample(ALL_EXAMPLES.length-1);//loadExample(0);//
-            //loadExample( 8 )//stimmings
+            loadExample(ALL_EXAMPLES.length-1); // loadExample(0);
         };
 
         document.addEventListener('keydown', function(event) {
