@@ -904,16 +904,14 @@ class EZWG {
 			}
 
             // Use any X,Y, deltaX, deltaY, attribute
+            
             fn EZ_CELL_VAL(x: u32, dx: i32, y: u32, dy: i32, att: u32 ) -> ${this.BUFFER_TYPE} {
+                var eex: u32 = u32(( i32(x) + dx) + ${this.CHUNK_SIZE}) % ${this.CHUNK_SIZE};
+                var eey: u32 = u32(( i32(y) + dy) + ${this.CHUNK_SIZE}) % ${this.CHUNK_SIZE};
                 var ocxx: u32 = u32( x / ${this.CHUNK_SIZE} );
                 var ocyy: u32 = u32( y / ${this.CHUNK_SIZE} );
-                var eex: u32 = u32( (i32(x)+dx+i32(${this.CHUNK_SIZE})) ) % ${this.CHUNK_SIZE};
-                var eey: u32 = u32( (i32(y)+dy+i32(${this.CHUNK_SIZE})) ) % ${this.CHUNK_SIZE};
-                eex = eex + (ocxx*${this.CHUNK_SIZE});
-                eey = eey + (ocyy*${this.CHUNK_SIZE});
-
-				return EZ_STATE_IN[ (att * ${this.TOTAL_CELLS}) + eex + (eey*${this.GRID_SIZE})];//EZ_helper_cellIndexChkRel( vec2( eex, eey ), ocxx, ocyy, ${this.CHUNK_SIZE}u )  ];
-			}
+                return EZ_STATE_IN[ att * u32( grid.x * grid.y ) + EZ_helper_cellIndexChkRel( vec2( eex, eey ), ocxx, ocyy, ${this.CHUNK_SIZE}u )  ];
+            }
 
             // This old version still works somehow?
             // fn EZ_GET_CELL(x: u32, y: u32, att: u32, ocx: u32, ocy: u32 ) -> f32 {

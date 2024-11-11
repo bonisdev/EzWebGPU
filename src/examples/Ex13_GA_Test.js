@@ -7,13 +7,14 @@ var Ex13_GA_Test= () => {
 
 
 
-    var Max_Gene_Instructions = 24;
+    var Max_Gene_Instructions = 80;
 
     let computeWGSL = 
     `  
         var maxGeneMoves: u32 = ${Max_Gene_Instructions}u; 
         var storageIndShift: u32 = EZ_CHUNK_IND * maxGeneMoves;  // <- times the number of each gene
         
+        var stepNum: f32 = EZ_USER_INPUT[ 63 ];
  
         const totalVals: u32 = 4u * EZ_CELL_VALS;
 
@@ -45,7 +46,9 @@ var Ex13_GA_Test= () => {
         var dy: i32 = -1i;
         var bestValOfInt: u32 = 0u;  // can be 0 to 255
         var bestNeigh: u32 = 0u;     // can be 0 to 7  (best neighbour)
-        var tempigess: u32 = 0u;    
+        var tempigess: u32 = 0u;  
+        
+        var useAveInstead: bool = true; // if this is true at the end of the neighbourhood time
 
         ii = 0;
         loop {
@@ -55,7 +58,7 @@ var Ex13_GA_Test= () => {
             var v_inst: vec4<u32> = EZ_U32_TO_VEC4( instruction );
  
             // The first part is the op code:
-            var opCode = v_inst.x   % 4u;       // Specify the type of entity power 
+            var opCode = v_inst.x   % 13u;       // Specify the type of entity power 
             var toCode = v_inst.y   % totalVals;
             var fromCode = v_inst.z % totalVals;
 
@@ -63,8 +66,8 @@ var Ex13_GA_Test= () => {
                                                 // MAPS to one of the 4*memVals attributes of a cell (so max 255, and max 64 u32 mem spots per cell)
 
             // random offset for tie breaker
-            nOffset = EZ_RAND_U( opCode*11u + toCode*127u + fromCode*199u + attOfInt*166u + EZX_R*219u + EZY_R*397u );
-            nOffset = nOffset % 16000u;
+            nOffset = EZ_RAND_U( opCode*2111u + toCode*1127u + fromCode*199u + attOfInt*166u + EZX*219u + EZY*397u );
+            nOffset = nOffset % 8u;
             jj = 0u;
             loop {
                 if jj >= 8 { break; }
@@ -76,9 +79,10 @@ var Ex13_GA_Test= () => {
                 tempigess = EZ_CELL_VAL( EZX, dx, EZY, dy, attOfInt / 4u );
                 tempigess = ( tempigess >> ((attOfInt%4u)*8u) ) & 0x000000FFu;
 
-                if( tempigess > bestValOfInt ){
+                if( tempigess >= bestValOfInt ){
                     bestValOfInt = tempigess;
                     bestNeigh = kk;
+                    useAveInstead = false;
                 }
                 
                 jj = jj + 1u;
@@ -99,27 +103,99 @@ var Ex13_GA_Test= () => {
 
             // Add 1
             if( opCode == 0 ){
-                outValues[toCode] = tempigess + 1u;
+                outValues[toCode] += tempigess + 1u;
             }
             // Add 10
             else if( opCode == 1 ){
-                outValues[toCode] = tempigess + 10u;
+                outValues[toCode] += tempigess + 10u;
             }
             // Bit shift right 1
             else if( opCode == 2 ){
-                outValues[toCode] = tempigess >> 1u;
+                outValues[toCode] += tempigess >> 1u;
             }
             // Bit shift left 1
             else if( opCode == 3 ){
                 outValues[toCode] = tempigess << 1u;
+            }
+            // Gradual Increase
+            else if( opCode == 4 ){
+                outValues[toCode] += tempigess/7u;
+            }
+            // Big Increase
+            else if( opCode == 5 ){
+                outValues[toCode] += tempigess + 40u;
+            }
+            // Medium Increase
+            else if( opCode == 6 ){
+                outValues[toCode] = tempigess + 15u;
+            }
+            // Death
+            else if( opCode == 7 ){
+                outValues[toCode] = 0u;
+            }
+            // Max Life
+            else if( opCode == 8 ){
+                outValues[toCode] = tempigess >> 1u;
+            }
+            // Stabilization Increase
+            else if( opCode == 9 ){
+                outValues[toCode] = 123u;
+            }
+            // Smooth Retreate Increase
+            else if( opCode == 10 ){
+                outValues[toCode] = u32( f32(tempigess)*0.9f );
+            }
+            // Add 1
+            else if( opCode == 11 ){
+                outValues[toCode] = tempigess >> 2u;
             } 
+            // Sub 1
+            else if( opCode == 12 ){
+                if( tempigess > 0 ){outValues[toCode] = tempigess - 1u; }
+                else{ outValues[toCode] = 0u; }
+                
+            }
 
-
-            
             // CONSTRAIN new output values to this number
-            outValues[toCode] = outValues[toCode] % 256; 
+            outValues[toCode] = outValues[toCode] % 256u; 
 
             ii = ii + 1u;
+        }
+
+
+        // Override input cells with certain values:
+        var bsize: f32 = f32(EZ_CHUNK_SIZE);
+        var angsize: f32 = 6.28f / 5f;
+        var currang: f32 = 0f;
+        var sensorCell: u32 = 0u;
+
+        ii = 0;
+        loop {
+            if ii >= 5 { break; }
+            if( EZX_R == u32(sin(currang)*(bsize/3f) + bsize/2f) && EZY_R == u32(cos(currang)*(bsize/3f) + bsize/2f)  ){
+                sensorCell = ii + 1u;
+            }
+            currang += angsize;
+            ii = ii + 1u;
+        }
+
+        // You are a special cell - take in the power of idk
+        if( sensorCell > 0u ){
+            sensorCell = sensorCell - 1u;
+            
+            if( stepNum%500 > f32(sensorCell) * 100 ){
+                outValues[0] = 255u;
+                outValues[1] = 255u;
+                outValues[2] = 255u;
+                outValues[3] = 255u;
+            }
+            else{
+                outValues[0] = 0u;
+                outValues[1] = 0u;
+                outValues[2] = 0u;
+                outValues[3] = 0u;
+            }
+            
         }
 
 
@@ -132,7 +208,7 @@ var Ex13_GA_Test= () => {
             instruction = ii * 4u; // re-use this 
 
             EZ_STATE_OUT[ EZ_CELL_IND + (ii*EZ_TOTAL_CELLS) ] = 
-                (outValues[instruction + 0] & 0x000000FF) |
+                ( outValues[instruction + 0] & 0x000000FF) |
                 ((outValues[instruction + 1] & 0x000000FF) << 8) |
                 ((outValues[instruction + 2] & 0x000000FF) << 16) |
                 ((outValues[instruction + 3] & 0x000000FF) << 24);
@@ -148,7 +224,7 @@ var Ex13_GA_Test= () => {
         var ggg: f32 = 0;
         var bbb: f32 = 0;
 
-        var valsToUse: u32 = 4u;        // < -   USE the first 4 u32 values in a cell
+        var valsToUse: u32 = 3u;        // < -   USE the first 4 u32 values in a cell
  
         // then each val in the mem spot 
         
@@ -160,7 +236,8 @@ var Ex13_GA_Test= () => {
 
             rawCellVal = EZ_CELL_VAL( EZX, 0, EZY, 0, ii );
 
-            calcedPower = 1f;       // f32( ((rawCellVal>>24)&0x000000FF) ) / 255f;
+            calcedPower = f32( ((rawCellVal>>24)&0x000000FF) ) / 255f;
+            calcedPower = 1f;   // - calcedPower;
 
             rrr += calcedPower * f32( (rawCellVal & 0x000000FF) ) / 255f;
             ggg += calcedPower * f32( ((rawCellVal >> 8) & 0x000000FF) ) / 255f;
@@ -169,7 +246,7 @@ var Ex13_GA_Test= () => {
             ii = ii + 1u;
         }
 
-        calcedPower =  f32( valsToUse );         // divide by amount of cell's looked at 
+        calcedPower = f32( valsToUse );         // divide by amount of cell's looked at 
 
         EZ_OUTPUT.red = rrr / calcedPower;
         EZ_OUTPUT.grn = ggg / calcedPower;
@@ -188,12 +265,12 @@ var Ex13_GA_Test= () => {
     // Usage example
     let config = {
 
-        CELL_SIZE: 4,//4,       // nxn pixels per cell 
-        CHUNK_SIZE: 32,      // nxn cells per digital brain
+        CELL_SIZE: 4,       // nxn pixels per cell 
+        CHUNK_SIZE: 32,     // nxn cells per digital brain
         CHUNKS_ACROSS: 4,   // nxn digital brains per batch
         PARTS_ACROSS: 1,    // nxn sqaures to display per cell
 
-        CELL_VALS: 6,       // 5 u32's 
+        CELL_VALS: 5,       // 5 u32's 
             // **** NOTE ^^^^^^      
             //      MAX OF 64 BECAUSE THE HIGHEST VAL address specificable has to fit in a 255 number, and 65 would be over te max.
 		
@@ -280,7 +357,6 @@ var Ex13_GA_Test= () => {
                 if( xx % config.CHUNK_SIZE === 0 && yy % config.CHUNK_SIZE === 0 ){
 
                     initialState[ (cval*attlength) + (xx*glength) + yy ] = 
-                     
                         EZWG.createPackedU32( 
                             Math.floor(256*EZWG.SHA1.random()), 
                             Math.floor(256*EZWG.SHA1.random()),
@@ -291,7 +367,6 @@ var Ex13_GA_Test= () => {
                 // ANYthing else
                 else{
                     initialState[ (cval*attlength) + (xx*glength) + yy ] = 
-                    
                         EZWG.createPackedU32( 10, 11, 12, 13 );
                 }
   
@@ -307,7 +382,7 @@ var Ex13_GA_Test= () => {
 
     // Intital set the default runner to this
     EZ_EXAMPLE = new EZWG( config);
-    EZ_EXAMPLE.UPDATE_INTERVAL = 55;
+    EZ_EXAMPLE.UPDATE_INTERVAL = 65;
     
     
 };
